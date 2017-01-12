@@ -2,28 +2,55 @@ import math
 import trajectory.MathUtil as MathUtil
 
 
+class SplineException(ValueError):
+    pass
+
+
 class Spline:
     class Type:
         QuinticHermite = 0
         CubicHermite = 1
 
-    def __init__(self, x0, y0, theta0, x1, y1, theta1, type):
+    def __init__(self, *args):
+        self.arc_length = None
+        self.x_offset = None
+        self.y_offset = None
+        self.type = None
+        self.knot_distance = None
+        self.theta_offset = None
+        self.a = None
+        self.b = None
+        self.c = None
+        self.d = None
+        self.e = None
+        if len(args) == 3:
+            self.reticulate_waypoints(*args)
+        elif len(args) == 7:
+            self.reticulate_raw(*args)
+        else:
+            raise ValueError("Invalid arguments given")
+
+    def reticulate_waypoints(self, wp_begin, wp_end, type):
+        self.reticulate_raw(wp_begin.x, wp_begin.y, wp_begin.theta,
+                            wp_end.x, wp_end.y, wp_end.theta, type)
+
+    def reticulate_raw(self, x0, y0, theta0, x1, y1, theta1, type):
         self.arc_length = None
         self.x_offset = x0
         self.y_offset = y0
         self.type = type
         dist = ((x1 - x0)**2 + (y1 - y0)**2)**0.5
         if dist == 0:
-            return  # Zero path, can't handle. Exception?
+            raise SplineException("Zero length path")
         self.knot_distance = dist
         self.theta_offset = math.atan2(y1 - y0, x1 - x0)
         theta0_hat = MathUtil.radian_angle_difference(self.theta_offset, theta0)
         theta1_hat = MathUtil.radian_angle_difference(self.theta_offset, theta1)
 
-        if MathUtil.almost_equal(theta0_hat, math.pi / 2) or MathUtil.almost_equal(theta1_hat, math.pi / 2):
-            return  # Can't handle
-        if MathUtil.radian_angle_difference(theta0_hat, theta1_hat) >= math.pi / 2:
-            return  # Can't handle
+        if MathUtil.almost_equal(abs(theta0_hat), math.pi / 2) or MathUtil.almost_equal(abs(theta1_hat), math.pi / 2):
+            raise SplineException("Vertical slope")
+        if abs(MathUtil.radian_angle_difference(theta0_hat, theta1_hat)) >= math.pi / 2:
+            raise SplineException("Turn greater than 90*")
         yp0_hat = math.tan(theta0_hat)
         yp1_hat = math.tan(theta1_hat)
         if type == Spline.Type.CubicHermite:
@@ -38,6 +65,8 @@ class Spline:
             self.c = -(6 * yp0_hat + 4 * yp1_hat) / (dist**2)
             self.d = 0
             self.e = yp0_hat
+        else:
+            raise SplineException("Invalid type given")
 
     def calculate_length(self):
         if self.arc_length is not None:
@@ -109,7 +138,7 @@ class Spline:
         return 20 * self.a * x**3 + 12 * self.b * x**2 + 6 * self.c * x + 2 * self.d
 
     def angle_at(self, percentage):
-        return MathUtil.normalize_angle_radians(math.atan(self.derivative_at(percentage) + self.theta_offset))
+        return MathUtil.normalize_angle_radians(math.atan(self.derivative_at(percentage)) + self.theta_offset)
 
     def angle_change_at(self, percentage):
         return MathUtil.normalize_half_angle_radians(math.atan(self.second_derivative_at(percentage)))
