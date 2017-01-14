@@ -46,6 +46,7 @@ model {
                 c {
                     source.srcDirs 'src/c'
                     exportedHeaders.srcDirs 'src/include'
+                    exportedHeaders.srcDirs 'src/include/pf_arm'
                 }
                 asm.source.srcDirs 'src/asm'
             }

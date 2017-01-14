@@ -1,7 +1,6 @@
 remotes {
     roboRIO {
-        host = 'localhost'
-        port = 10022
+        host = '172.22.11.2'
         user = 'lvuser'
         password = ''
         knownHosts = allowAnyHosts
