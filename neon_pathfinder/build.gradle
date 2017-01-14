@@ -1,3 +1,7 @@
+plugins {
+  id "org.hidetake.ssh" version "2.7.0"
+}
+
 allprojects {
     apply plugin: 'c'
     apply plugin: 'assembler'
@@ -51,4 +55,15 @@ model {
 
 task wrapper(type: Wrapper) {
     gradleVersion = '3.2.1'
+}
+task deploy {
+    doLast {
+        ssh.run {
+            session(remotes.roboRIO) {
+                execute "mkdir -p neon_pathfinder"
+                put from: file("build/libs/pathfinder_arm/shared/libpathfinder_arm.so"), into: "neon_pathfinder"
+                put from: file("neon_pathfinder.py"), into: "neon_pathfinder"
+            }
+        }
+    }
 }

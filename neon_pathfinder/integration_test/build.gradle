@@ -1,10 +1,7 @@
-plugins {
-  id "org.hidetake.ssh" version "2.7.0"
-}
-
 remotes {
     roboRIO {
-        host = '172.22.11.2'
+        host = 'localhost'
+        port = 10022
         user = 'lvuser'
         password = ''
         knownHosts = allowAnyHosts
