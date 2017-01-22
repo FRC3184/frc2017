@@ -29,7 +29,7 @@ class MyRobot(wpilib.SampleRobot):
 
     def robotInit(self):
         dashboard2.run()
-        dashboard2.graph("Time", robot_time.get_match_time)
+
         self.talon_left_front = ctre.CANTalon(0)
         self.talon_left_rear = ctre.CANTalon(1)
         self.talon_right_rear = ctre.CANTalon(2)
@@ -40,6 +40,8 @@ class MyRobot(wpilib.SampleRobot):
                                 self.talon_left_rear,
                                 self.talon_right_front,
                                 self.talon_right_rear)
+
+        dashboard2.graph("Heading", self.drive.get_heading)
 
         self.js_left = wpilib.Joystick(0)
         self.js_right = wpilib.Joystick(1)
@@ -65,7 +67,10 @@ class MyRobot(wpilib.SampleRobot):
 
         while self.isOperatorControl():
             # Loop
-            self.drive.arcadeDrive(-self.js_left.getY(), -self.js_right.getX())
+            if self.js_left.getRawButton(1):
+                self.drive.turn_to_angle(0)
+            else:
+                self.drive.arcadeDrive(-self.js_left.getY(), -self.js_right.getX())
             intake_pow = 0
             if self.js_left.getRawButton(4):
                 intake_pow = 1
