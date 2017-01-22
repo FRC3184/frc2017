@@ -1,12 +1,22 @@
 import wpilib
 import robot_time
+import ctre.cantalon as ctre
 from dashboard import dashboard2
+from drivetrain import drivetrain
 
 
 class MyRobot(wpilib.SampleRobot):
     def __init__(self):
         super().__init__()
         self.delay_millis = 50
+        self.drive = None
+        self.talon_left_front = None
+        self.talon_left_rear = None
+        self.talon_right_rear = None
+        self.talon_right_front = None
+
+        self.js_left = None
+        self.js_right = None
 
     def periodic(self):
         """
@@ -20,6 +30,19 @@ class MyRobot(wpilib.SampleRobot):
     def robotInit(self):
         dashboard2.run()
         dashboard2.graph("Time", robot_time.get_match_time)
+        self.talon_left_front = ctre.CANTalon(0)
+        self.talon_left_rear = ctre.CANTalon(1)
+        self.talon_right_rear = ctre.CANTalon(2)
+        self.talon_right_front = ctre.CANTalon(3)
+        self.victor_intake = wpilib.VictorSP(0)
+
+        self.drive = drivetrain(self.talon_left_front,
+                                self.talon_left_rear,
+                                self.talon_right_front,
+                                self.talon_right_rear)
+
+        self.js_left = wpilib.Joystick(0)
+        self.js_right = wpilib.Joystick(1)
 
     def autonomous(self):
         # Init
@@ -39,8 +62,16 @@ class MyRobot(wpilib.SampleRobot):
 
     def operatorControl(self):
         # Init
+
         while self.isOperatorControl():
             # Loop
+            self.drive.arcadeDrive(-self.js_left.getY(), -self.js_right.getX())
+            intake_pow = 0
+            if self.js_left.getRawButton(4):
+                intake_pow = 1
+            elif self.js_left.getRawButton(5):
+                intake_pow = -1
+            self.victor_intake.set(intake_pow)
 
             self.periodic()
             robot_time.sleep(millis=self.delay_millis)
