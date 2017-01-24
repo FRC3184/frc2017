@@ -1,6 +1,6 @@
 import wpilib
 import robot_time
-import ctre.cantalon as ctre
+import ctre.cantalon
 from dashboard import dashboard2
 from drivetrain import drivetrain
 
