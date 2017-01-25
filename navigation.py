@@ -74,30 +74,35 @@ def straight_trajectory(dist, cruise_speed, acc, frequency=100):
         ramp_time = (dist / acc)**0.5
         ramp_dist = acc * ramp_time**2 / 2
 
+    print("Ramp time: {}".format(ramp_time))
+    print("Ramp dist: {}".format(ramp_dist))
+    print("Cruise dist: {}".format(cruise_dist))
+    print("Cruise time: {}".format(cruise_time))
+
     time = cruise_time + 2 * ramp_time
 
     def get_pos(t):
-        if t < ramp_time:
+        if t <= ramp_time:
             return acc * t**2 / 2
-        elif t < ramp_time + cruise_time:
+        elif t <= ramp_time + cruise_time:
             return ramp_dist + (t - ramp_time) * get_vel(ramp_time)
         else:
             tp = (t - ramp_time - cruise_time)
             return ramp_dist + cruise_dist + get_vel(ramp_time + cruise_time) * tp - acc * tp**2 / 2
 
     def get_vel(t):
-        if t < ramp_time:
+        if t <= ramp_time:
             return get_acc(t) * t
-        elif t < ramp_time + cruise_time:
+        elif t <= ramp_time + cruise_time:
             return get_acc(ramp_time) * t
         else:
             tp = (t - ramp_time - cruise_time)
-            return tp * get_acc(ramp_time + cruise_time) - acc * tp
+            return get_vel(ramp_time + cruise_time) - acc * tp
 
     def get_acc(t):
-        if t < ramp_time:
+        if t <= ramp_time:
             return acc
-        elif t < ramp_time + cruise_time:
+        elif t <= ramp_time + cruise_time:
             return 0
         else:
             return -acc
