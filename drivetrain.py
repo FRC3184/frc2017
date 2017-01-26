@@ -2,9 +2,7 @@ import wpilib
 import math
 from robotpy_ext.common_drivers.navx.ahrs import AHRS
 
-
-def _sgn(x):
-    return x/abs(x) if x != 0 else 0
+import mathutils
 
 
 class drivetrain(wpilib.RobotDrive):
@@ -41,7 +39,7 @@ class drivetrain(wpilib.RobotDrive):
             return
         turn_power = turn_power**1/3
         radius = self.max_turn_radius * (1 - abs(turn_power))
-        self.radius_turn(forward_power, radius * _sgn(turn_power))
+        self.radius_turn(forward_power, radius * mathutils.sgn(turn_power))
 
     def turn_to_angle(self, angle, allowable_error=2):
         err = angle - self.ahrs.getYaw()
@@ -51,12 +49,15 @@ class drivetrain(wpilib.RobotDrive):
         min_power = .3
         p = err / 180
         if abs(p) < min_power:
-            p = _sgn(p) * min_power
+            p = mathutils.sgn(p) * min_power
         if abs(p) > 1:
-            p = _sgn(p)
+            p = mathutils.sgn(p)
         self.arcadeDrive(0, -p)
         return False
 
     def get_heading(self):
         return self.ahrs.getYaw()
+
+    def motion_profile_drive(self, points):
+        pass
 
