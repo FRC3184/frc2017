@@ -76,6 +76,8 @@ class TrajectoryPoint:
 
 
 def straight_trajectory(dist, cruise_speed, acc, frequency=100):
+    # https://www.desmos.com/calculator/ponjr7cwze
+
     ramp_time = cruise_speed / acc
     ramp_dist = acc * ramp_time**2 / 2
     cruise_dist = dist - 2 * ramp_dist
@@ -86,7 +88,7 @@ def straight_trajectory(dist, cruise_speed, acc, frequency=100):
         cruise_time = 0
         cruise_dist = 0
         ramp_time = (dist / acc)**0.5
-        ramp_dist = acc * ramp_time**2 / 2
+        ramp_dist = dist / 2
 
     time = cruise_time + 2 * ramp_time
 

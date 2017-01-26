@@ -3,11 +3,13 @@ import math
 from robotpy_ext.common_drivers.navx.ahrs import AHRS
 
 import mathutils
+from command_based import Subsystem
 
 
-class drivetrain(wpilib.RobotDrive):
+class drivetrain(wpilib.RobotDrive, Subsystem):
     def __init__(self, *args, **kwargs):
-        super().__init__(*args)
+        wpilib.RobotDrive.__init__(self, *args)
+        Subsystem.__init__(self)
         if "robot_width" in kwargs.keys():
             self.robot_width = kwargs['robot_width']
         else:
