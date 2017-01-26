@@ -1,8 +1,6 @@
 import math
 
-
-def _sgn(x):
-    return 0 if x == 0 else x / abs(x)
+import mathutils
 
 
 class _Point:
@@ -19,29 +17,39 @@ class _Point:
     def dy2(self, other):
         return (self.y - other.y)**2
 
+    def __str__(self):
+        return "Point(x={}, y={})".format(self.x, self.y)
+
 
 class Waypoint(_Point):
     def __init__(self, x, y, heading):
         super().__init__(x, y)
         self.heading = heading
 
+    def __str__(self):
+        return "Waypoint(x={}, y={}, theta={})".format(self.x, self.y, self.heading)
+
 
 def _calc(point1, knot1, knot2, point2):
     # Chris made this in desmos. I don't know how it works. Don't ask me.
-    sgn_theta1 = -_sgn((knot2.y - knot1.y)/(knot2.x - knot1.x) * (point1.x - knot1.x) + knot1.y - point1.y)
+    # https://www.desmos.com/calculator/yri3mwz7kn
+    sgn_theta1 = -mathutils.sgn((knot2.y - knot1.y)/(knot2.x - knot1.x) * (point1.x - knot1.x) + knot1.y - point1.y)
     num = knot2.dx2(point1) + knot2.dy2(point1) - knot1.dx2(point1) - knot1.dy2(point1) - knot1.dx2(knot2) - \
           knot1.dy2(knot2)
     angle_theta1 = math.acos(num / (-2 * knot1.dist(knot2) * knot1.dist(point1)))
     theta1 = sgn_theta1 * angle_theta1
 
-    sgn_theta2 = _sgn((knot2.y - knot1.y) / (knot2.x - knot1.x) * (point2.x - knot2.x) + knot2.y - point2.y)
+    sgn_theta2 = -mathutils.sgn((knot2.y - knot1.y) / (knot2.x - knot1.x) * (point2.x - knot2.x) + knot2.y - point2.y)
     num = knot1.dx2(point2) + knot1.dy2(point2) - knot2.dx2(point2) - knot2.dy2(point2) - knot1.dx2(knot2) - \
           knot1.dy2(knot2)
-    angle_theta2 = math.acos(num / (-2 * knot1.dist(knot2) * knot1.dist(point1)))
+    print(num / (-2 * knot1.dist(knot2) * knot1.dist(point1)))
+    angle_theta2 = math.acos(num / (-2 * knot1.dist(knot2) * knot2.dist(point2))) - math.pi
     theta2 = sgn_theta2 * angle_theta2
 
     d = knot1.dist(knot2)
-    return theta1, d, theta2
+    print(mathutils.normalize_angle(theta1))
+    print(mathutils.normalize_angle(theta2))
+    return mathutils.normalize_angle(theta1), d, mathutils.normalize_angle(theta2)
 
 
 def navigate(waypoint1, waypoint2):

@@ -2,9 +2,7 @@ import wpilib
 import math
 from robotpy_ext.common_drivers.navx.ahrs import AHRS
 
-
-def _sgn(x):
-    return x/abs(x) if x != 0 else 0
+import mathutils
 
 
 class drivetrain(wpilib.RobotDrive):
@@ -51,12 +49,15 @@ class drivetrain(wpilib.RobotDrive):
         min_power = .3
         p = err / 180
         if abs(p) < min_power:
-            p = _sgn(p) * min_power
+            p = mathutils.sgn(p) * min_power
         if abs(p) > 1:
-            p = _sgn(p)
+            p = mathutils.sgn(p)
         self.arcadeDrive(0, -p)
         return False
 
     def get_heading(self):
         return self.ahrs.getYaw()
+
+    def motion_profile_drive(self, points):
+        pass
 
