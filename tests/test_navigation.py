@@ -35,7 +35,7 @@ def test_trajectory_long2():
 
 
 def test_trajectory_short():
-    # Test triangular profile
+    # Test short triangular profile
     dist = 3
     cruise = 2
     acc = 1

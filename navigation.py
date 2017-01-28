@@ -122,4 +122,4 @@ def straight_trajectory(dist, cruise_speed, acc, frequency=100):
     for i in range(int(time * frequency) + 1):
         t = i / frequency
         points.append(TrajectoryPoint(t, get_pos(t), get_vel(t), get_acc(t)))
-    return points
+    return points, time, 1 / frequency

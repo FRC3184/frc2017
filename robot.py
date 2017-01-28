@@ -1,4 +1,9 @@
+import threading
+
+import math
 import wpilib
+
+import navigation
 import robot_time
 import ctre.cantalon
 
@@ -16,6 +21,8 @@ class MyRobot(wpilib.SampleRobot):
         self.talon_left_rear = None
         self.talon_right_rear = None
         self.talon_right_front = None
+        self.talon_right = None
+        self.talon_left = None
         self.victor_intake = None
 
         self.js_left = None
@@ -53,10 +60,16 @@ class MyRobot(wpilib.SampleRobot):
         self.talon_right_front = ctre.CANTalon(3)
         self.victor_intake = wpilib.VictorSP(0)
 
+        self.talon_left_rear.setControlMode(ctre.CANTalon.ControlMode.Follower)
+        self.talon_left_rear.set(0)
+        self.talon_right_rear.setControlMode(ctre.CANTalon.ControlMode.Follower)
+        self.talon_right_rear.set(3)
+
+        self.talon_left = self.talon_left_front
+        self.talon_right = self.talon_right_front
+
         self.drive = drivetrain(self.talon_left_front,
-                                self.talon_left_rear,
-                                self.talon_right_front,
-                                self.talon_right_rear)
+                                self.talon_right_front)
 
         dashboard2.graph("Heading", self.drive.get_heading)
 
@@ -138,6 +151,50 @@ class OpDriveCommand(Command):
             self.manually_finish = True
             self.my_robot.cmd_queue.append(TurnToAngleCommand(self.my_robot, 0))
             self.my_robot.cmd_queue.append(self)
+
+
+class MotionProfileDriveCommand(Command):
+    def __init__(self, my_robot, dist, vel, acc, margin=2):
+        super().__init__(my_robot)
+        self.drive = my_robot.drive
+        self.dist = dist
+        self.vel = vel
+        self.acc = acc
+        self.margin = margin
+
+        self.scale_factor = (math.pi * self.drive.wheel_diameter / 12)
+
+    def can_run(self):
+        return not self.drive.is_occupied
+
+    def init(self):
+        self.drive.occupy()
+
+        vel_rpm = (self.vel / self.scale_factor) / 60
+        acc_rpm = (self.acc / self.scale_factor) / 60 ** 2
+        self.my_robot.talon_left.setMotionMagicCruiseVelocity(vel_rpm)
+        self.my_robot.talon_right.setMotionMagicCruiseVelocity(vel_rpm)
+        self.my_robot.talon_left.setMotionMagicAcceleration(acc_rpm)
+        self.my_robot.talon_right.setMotionMagicAcceleration(acc_rpm)
+
+        self.my_robot.talon_left.setControlMode(ctre.CANTalon.ControlMode.MotionMagic)
+        self.my_robot.talon_right.setControlMode(ctre.CANTalon.ControlMode.MotionMagic)
+
+        dist_revs = self.dist / self.scale_factor
+        self.my_robot.talon_left.set(dist_revs)
+
+    def is_finished(self):
+        left_on = self.my_robot.talon_left.getClosedLoopError() / self.scale_factor < self.margin
+        right_on = self.my_robot.talon_right.getClosedLoopError() / self.scale_factor < self.margin
+        return left_on and right_on
+
+    def finish(self):
+        self.drive.release()
+        self.my_robot.talon_left.setControlMode(ctre.CANTalon.ControlMode.PercentVbus)
+        self.my_robot.talon_right.setControlMode(ctre.CANTalon.ControlMode.PercentVbus)
+
+    def run_periodic(self):
+        pass
 
 
 if __name__ == '__main__':

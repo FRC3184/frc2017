@@ -20,6 +20,11 @@ class drivetrain(wpilib.RobotDrive, Subsystem):
         else:
             self.max_turn_radius = 10
 
+        if "wheel_diameter" in kwargs.keys():
+            self.wheel_diameter = kwargs['wheel_diameter']
+        else:
+            self.wheel_diameter = 4
+
         self.ahrs = AHRS.create_i2c()
 
     def radius_turn(self, pow, radius):
