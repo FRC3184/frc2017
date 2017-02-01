@@ -49,7 +49,7 @@ class drivetrain(wpilib.RobotDrive, Subsystem):
         self.radius_turn(forward_power, radius * mathutils.sgn(turn_power))
 
     def turn_to_angle(self, angle, allowable_error=2):
-        err = angle - self.ahrs.getYaw()
+        err = angle - self.get_heading()
         if abs(err) < allowable_error:
             self.arcadeDrive(0, 0)
             return True
@@ -63,7 +63,7 @@ class drivetrain(wpilib.RobotDrive, Subsystem):
         return False
 
     def get_heading(self):
-        return self.ahrs.getYaw()
+        return self.ahrs.getRoll()
 
     def motion_profile_drive(self, points):
         pass

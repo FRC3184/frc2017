@@ -24,6 +24,7 @@ class MyRobot(wpilib.SampleRobot):
         self.talon_right = None
         self.talon_left = None
         self.victor_intake = None
+        self.spark_climber = None
 
         self.js_left = None
         self.js_right = None
@@ -59,6 +60,7 @@ class MyRobot(wpilib.SampleRobot):
         self.talon_right_rear = ctre.CANTalon(2)
         self.talon_right_front = ctre.CANTalon(3)
         self.victor_intake = wpilib.VictorSP(0)
+        self.spark_climber = wpilib.Spark(1)
 
         self.talon_left_rear.setControlMode(ctre.CANTalon.ControlMode.Follower)
         self.talon_left_rear.set(0)
@@ -68,8 +70,12 @@ class MyRobot(wpilib.SampleRobot):
         self.talon_left = self.talon_left_front
         self.talon_right = self.talon_right_front
 
+        self.talon_left.setFeedbackDevice(ctre.CANTalon.FeedbackDevice.CtreMagEncoder_Relative)
+        self.talon_right.setFeedbackDevice(ctre.CANTalon.FeedbackDevice.CtreMagEncoder_Relative)
+
         self.drive = drivetrain(self.talon_left_front,
                                 self.talon_right_front)
+        self.drive.setInvertedMotor(wpilib.RobotDrive.MotorType.kRearRight, True)
 
         dashboard2.graph("Heading", self.drive.get_heading)
 
@@ -151,6 +157,13 @@ class OpDriveCommand(Command):
             self.manually_finish = True
             self.my_robot.cmd_queue.append(TurnToAngleCommand(self.my_robot, 0))
             self.my_robot.cmd_queue.append(self)
+
+        if js_left.getRawButton(4):
+            self.my_robot.spark_climber.set(1)
+        elif js_left.getRawButton(5):
+            self.my_robot.spark_climber.set(-1)
+        else:
+            self.my_robot.spark_climber.set(0)
 
 
 class MotionProfileDriveCommand(Command):
