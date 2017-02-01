@@ -123,3 +123,22 @@ def straight_trajectory(dist, cruise_speed, acc, frequency=100):
         t = i / frequency
         points.append(TrajectoryPoint(t, get_pos(t), get_vel(t), get_acc(t)))
     return points, time, 1 / frequency
+
+
+def radius_trajectory(radius, angle, track_width, cruise_speed, acc, frequency=100):
+
+    D = track_width / 2
+    ratio = (radius - D) / (radius + D)
+
+    outer_dist = (radius + D) * angle
+    inner_dist = (radius - D) * angle
+
+    outer_speed = cruise_speed
+    inner_speed = cruise_speed * ratio
+
+    outer_acc = acc
+    inner_acc = acc * ratio
+
+    outer_points, total_time, _ = straight_trajectory(outer_dist, outer_speed, outer_acc, frequency=frequency)
+    inner_points, _, _ = straight_trajectory(inner_dist, inner_speed, inner_acc, frequency=frequency)
+    return outer_points, inner_points, total_time, 1/frequency
