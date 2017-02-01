@@ -6,7 +6,7 @@ import mathutils
 from command_based import Subsystem
 
 
-class drivetrain(wpilib.RobotDrive, Subsystem):
+class Drivetrain(wpilib.RobotDrive, Subsystem):
     def __init__(self, *args, **kwargs):
         wpilib.RobotDrive.__init__(self, *args)
         Subsystem.__init__(self)
@@ -65,6 +65,6 @@ class drivetrain(wpilib.RobotDrive, Subsystem):
     def get_heading(self):
         return self.ahrs.getRoll()
 
-    def motion_profile_drive(self, points):
-        pass
+    def default(self):
+        self.setLeftRightMotorOutputs(0, 0)
 

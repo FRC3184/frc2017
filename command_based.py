@@ -37,6 +37,9 @@ class Subsystem:
     def release(self):
         self.is_occupied = False
 
+    def default(self):
+        pass
+
 
 class ExclusiveException(Exception):
     pass
