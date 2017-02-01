@@ -1,3 +1,4 @@
+import mathutils
 from command_based import Command
 import ctre
 import math
@@ -82,6 +83,67 @@ class MotionProfileDriveCommand(Command):
 
         dist_revs = self.dist / self.scale_factor
         self.my_robot.talon_left.set(dist_revs)
+
+    def is_finished(self):
+        left_on = self.my_robot.talon_left.getClosedLoopError() / self.scale_factor < self.margin
+        right_on = self.my_robot.talon_right.getClosedLoopError() / self.scale_factor < self.margin
+        return left_on and right_on
+
+    def finish(self):
+        self.drive.release()
+        self.my_robot.talon_left.setControlMode(ctre.CANTalon.ControlMode.PercentVbus)
+        self.my_robot.talon_right.setControlMode(ctre.CANTalon.ControlMode.PercentVbus)
+
+    def run_periodic(self):
+        pass
+
+
+class MotionProfileRadiusDriveCommand(Command):
+    def __init__(self, my_robot, radius, angle, vel, acc, margin=2):
+        super().__init__(my_robot)
+        self.drive = my_robot.drive
+        self.radius = abs(radius)
+        self.dir = mathutils.sgn(radius)
+        self.angle = angle
+        self.vel = vel
+        self.acc = acc
+        self.margin = margin
+
+        self.scale_factor = (math.pi * self.drive.wheel_diameter / 12)
+        self.wheel_ratio = (radius - self.drive.robot_width / 2) / (radius + self.drive.robot_width / 2)
+
+    def can_run(self):
+        return not self.drive.is_occupied
+
+    def init(self):
+        self.drive.occupy()
+
+        vel_rpm_outer = (self.vel / self.scale_factor) / 60
+        acc_rpm_outer = (self.acc / self.scale_factor) / 60 ** 2
+        vel_rpm_inner = self.wheel_ratio * vel_rpm_outer
+        acc_rpm_inner = self.wheel_ratio * acc_rpm_outer
+
+        self.my_robot.talon_left.setControlMode(ctre.CANTalon.ControlMode.MotionMagic)
+        self.my_robot.talon_right.setControlMode(ctre.CANTalon.ControlMode.MotionMagic)
+
+        dist_revs_outer = self.angle * (self.radius + self.drive.robot_width) / self.scale_factor
+        dist_revs_inner = self.angle * (self.radius - self.drive.robot_width) / self.scale_factor
+        if self.dir == 1:
+            outer_talon = self.my_robot.talon_left
+            inner_talon = self.my_robot.talon_right
+        else:
+            outer_talon = self.my_robot.talon_right
+            inner_talon = self.my_robot.talon_left
+            
+        outer_talon.setMotionMagicCruiseVelocity(vel_rpm_outer)
+        outer_talon.setMotionMagicCruiseVelocity(vel_rpm_outer)
+        outer_talon.setMotionMagicAcceleration(acc_rpm_outer)
+        outer_talon.set(dist_revs_outer)
+        
+        inner_talon.setMotionMagicCruiseVelocity(vel_rpm_inner)
+        inner_talon.setMotionMagicCruiseVelocity(vel_rpm_inner)
+        inner_talon.setMotionMagicAcceleration(acc_rpm_inner)
+        inner_talon.set(dist_revs_inner)
 
     def is_finished(self):
         left_on = self.my_robot.talon_left.getClosedLoopError() / self.scale_factor < self.margin
