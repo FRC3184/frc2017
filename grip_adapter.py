@@ -1,7 +1,10 @@
 from grip import GripPipeline
 import cv2
 import time
-import math
+from networktables import NetworkTables
+
+
+# This file runs on the Beaglebone, also running mjpg-streamer
 
 
 CAMERA_WIDTH = 320
@@ -15,6 +18,8 @@ def millis():
     return int(round(time.time() * 1000))
 
 _filter = None
+_vision_table = None
+
 
 class Contour:
     def __init__(self, contour):
@@ -32,38 +37,38 @@ class PegTarget:
         self.dist = FOCUS_LEN * 5 / self.height_px
         self.angle = self.center_x_px * CAMERA_ANGULAR_WIDTH / CAMERA_WIDTH
 
+
 def do_process(img):
     found_contours = _filter.process(img)
-    #print("Found {} contours".format(len(found_contours)))
     if len(found_contours) in (2, 3):
         contours = list(sorted([Contour(n) for n in found_contours], key=lambda n:n.x))
-        tallest = list(sorted(contours, key=lambda n: n.height))
-        peg = PegTarget(tallest[0], tallest[-1])
-        print("Angle: {}*".format(peg.angle))
-        print("Distance: {} in".format(peg.dist))
+        # TODO pair up contours more accurately
+        peg = PegTarget(contours[0], contours[-1])
+        _vision_table.putNumber("angle", peg.angle)
+        _vision_table.putNumber("distance", peg.dist)
     return img
+
 
 def init_filter():
     global _filter
     _filter = GripPipeline()
-    print(_filter)
     return do_process
 
 if __name__ == '__main__':
+    global _vision_table
+    print("VISION STARTING")
+    NetworkTables.initialize("roborio-3184-frc.local")
+    _vision_table = NetworkTables.getTable("vision")
     cap = cv2.VideoCapture("http://localhost:8080/?action=stream&type=.mjpg")
     init_filter()
-    print(_filter)
     last_millis = millis()
-    count = 0
-    fps_sum = 0
     val = True
+    print("VISION READY")
     while val:
         val, frame = cap.read()
         do_process(frame)
         time_now = millis()
         fps = 1/((time_now - last_millis)/1000)
-        fps_sum += fps
-        #print("{} FPS".format(fps))
+        vision_table.putNumber("fps", fps)
         last_millis = time_now
-        count += 1
 

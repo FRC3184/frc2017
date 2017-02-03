@@ -59,11 +59,9 @@ class MyRobot(wpilib.SampleRobot):
                 system.default()
 
         dashboard2.update(time_now)
-        state_logging.do_log()
 
     def robotInit(self):
         dashboard2.run()
-        state_logging.init_log()
 
         self.talon_left_front = ctre.CANTalon(0)
         self.talon_left_rear = ctre.CANTalon(1)
