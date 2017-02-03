@@ -3,10 +3,11 @@ import wpilib
 import robot_time
 import ctre.cantalon
 
+import state_logging
 from commands import OpDriveCommand
 from dashboard import dashboard2
 from drivetrain import Drivetrain
-from Motor import PWMMotor
+from motor import PWMMotor
 
 
 class MyRobot(wpilib.SampleRobot):
@@ -58,9 +59,11 @@ class MyRobot(wpilib.SampleRobot):
                 system.default()
 
         dashboard2.update(time_now)
+        state_logging.do_log()
 
     def robotInit(self):
         dashboard2.run()
+        state_logging.init_log()
 
         self.talon_left_front = ctre.CANTalon(0)
         self.talon_left_rear = ctre.CANTalon(1)
