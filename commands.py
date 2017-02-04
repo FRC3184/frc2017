@@ -36,6 +36,7 @@ class OpDriveCommand(Command):
 
     def init(self):
         self.my_robot.drive.occupy()
+        #self.my_robot.intake.occupy()
 
     def is_finished(self):
         return not self.my_robot.isOperatorControl() or self.manually_finish

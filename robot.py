@@ -7,6 +7,7 @@ import state_logging
 from commands import OpDriveCommand
 from dashboard import dashboard2
 from drivetrain import Drivetrain
+from systems import IntakeSubsystem
 from motor import PWMMotor
 
 
@@ -67,7 +68,7 @@ class MyRobot(wpilib.SampleRobot):
         self.talon_left_rear = ctre.CANTalon(1)
         self.talon_right_rear = ctre.CANTalon(2)
         self.talon_right_front = ctre.CANTalon(3)
-        self.victor_intake = PWMMotor(wpilib.VictorSP, pwm_port=0, pdp_port=0)
+        self.victor_intake = PWMMotor(wpilib.Spark, pwm_port=0, pdp_port=0)
         self.spark_climber = PWMMotor(wpilib.Spark, pwm_port=1, pdp_port=1)  # TODO actually get these values
 
         self.talon_left_rear.setControlMode(ctre.CANTalon.ControlMode.Follower)
@@ -80,10 +81,12 @@ class MyRobot(wpilib.SampleRobot):
 
         self.talon_left.setFeedbackDevice(ctre.CANTalon.FeedbackDevice.CtreMagEncoder_Relative)
         self.talon_right.setFeedbackDevice(ctre.CANTalon.FeedbackDevice.CtreMagEncoder_Relative)
+        self.talon_right.reverseSensor(True)
 
         self.drive = Drivetrain(self.talon_left_front,
                                 self.talon_right_front)
-        self.drive.setInvertedMotor(wpilib.RobotDrive.MotorType.kRearRight, True)
+        #self.drive.setInvertedMotor(wpilib.RobotDrive.MotorType.kRearRight, False)
+        #self.drive.setInvertedMotor(wpilib.RobotDrive.MotorType.kFrontRight, False)
 
         dashboard2.graph("Heading", self.drive.get_heading)
 
