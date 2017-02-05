@@ -1,3 +1,4 @@
+import os
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from socketserver import ThreadingMixIn
 import urllib.parse
@@ -167,7 +168,7 @@ class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
 
 
 def run(port=5800, daemon_threads=True):
-    server = ThreadedHTTPServer(('localhost', port), Handler)
+    server = ThreadedHTTPServer(('', port), Handler)
     server.daemon_threads = daemon_threads
     print('Starting dashboard server on port {}'.format(port))
     try:

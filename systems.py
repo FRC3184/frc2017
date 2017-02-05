@@ -1,7 +1,7 @@
 from command_based import Subsystem
 
 
-class ClimberSubsystem(Subsystem):
+class Climber(Subsystem):
     def __init__(self, my_robot):
         super().__init__(my_robot)
         self.motor = my_robot.spark_climber
@@ -16,13 +16,13 @@ class ClimberSubsystem(Subsystem):
         self.inactive()
 
 
-class IntakeSubsystem(Subsystem):
+class Intake(Subsystem):
     def __init__(self, my_robot):
         super().__init__(my_robot)
         self.motor = my_robot.victor_intake
 
     def active(self):
-        self.motor.set(1)
+        self.motor.set(.5)
 
     def inactive(self):
         self.motor.set(0)

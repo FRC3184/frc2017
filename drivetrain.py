@@ -13,7 +13,7 @@ class Drivetrain(wpilib.RobotDrive, Subsystem):
         if "robot_width" in kwargs.keys():
             self.robot_width = kwargs['robot_width']
         else:
-            self.robot_width = 27.75 / 12
+            self.robot_width = 29.25 / 12
 
         if "max_radius" in kwargs.keys():
             self.max_turn_radius = kwargs['max_radius']

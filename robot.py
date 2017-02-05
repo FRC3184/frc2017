@@ -4,10 +4,10 @@ import robot_time
 import ctre.cantalon
 
 import state_logging
-from commands import OpDriveCommand
+from commands import OpDriveCommand, MotionProfileDriveCommand
 from dashboard import dashboard2
 from drivetrain import Drivetrain
-from systems import IntakeSubsystem
+from systems import Intake
 from motor import PWMMotor
 
 
@@ -82,11 +82,16 @@ class MyRobot(wpilib.SampleRobot):
         self.talon_left.setFeedbackDevice(ctre.CANTalon.FeedbackDevice.CtreMagEncoder_Relative)
         self.talon_right.setFeedbackDevice(ctre.CANTalon.FeedbackDevice.CtreMagEncoder_Relative)
         self.talon_right.reverseSensor(True)
+        kF = 1023 / 5676
+        kP = 0
+        self.talon_left.setF(kF)
+        self.talon_left.setP(kP)
+        self.talon_right.setF(kF)
+        self.talon_right.setP(kP)
 
         self.drive = Drivetrain(self.talon_left_front,
                                 self.talon_right_front)
-        #self.drive.setInvertedMotor(wpilib.RobotDrive.MotorType.kRearRight, False)
-        #self.drive.setInvertedMotor(wpilib.RobotDrive.MotorType.kFrontRight, False)
+        self.intake = Intake(self)
 
         dashboard2.graph("Heading", self.drive.get_heading)
 
@@ -94,6 +99,8 @@ class MyRobot(wpilib.SampleRobot):
         self.js_right = wpilib.Joystick(1)
 
     def autonomous(self):
+        self.cmd_queue.append(MotionProfileDriveCommand(self, 10 * 12, 5 * 12, 2 * 12))
+
         # Init
         while self.isAutonomous():
             # Loop
