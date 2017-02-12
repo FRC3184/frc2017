@@ -49,6 +49,7 @@ class OpDriveCommand(Command):
         self.manually_finish = False
 
     def run_periodic(self):
+
         js_left = self.my_robot.js_left
         js_right = self.my_robot.js_right
         spenner = 0.7
@@ -68,6 +69,9 @@ class OpDriveCommand(Command):
             self.my_robot.shooter.active()
         else:
             self.my_robot.shooter.inactive()
+
+        if js_right.getRawButton(5):
+            self.my_robot.gear_lifter.print_color()
         if js_left.getRawButton(5):
             self.manually_finish = True
             self.my_robot.cmd_queue.append(TurnToAngleCommand(self.my_robot, 0))

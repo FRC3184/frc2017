@@ -7,7 +7,7 @@ import state_logging
 from commands import OpDriveCommand, MotionProfileDriveCommand
 from dashboard import dashboard2
 from drivetrain import Drivetrain
-from systems import FuelTank, Shooter
+from systems import FuelTank, Shooter, GearLifter
 from motor import PWMMotor
 
 
@@ -36,6 +36,7 @@ class MyRobot(wpilib.SampleRobot):
         self.climber = None
         self.fueltank = None
         self.shooter = None
+        self.gear_lifter = None
 
         self.systems = {"drive": self.drive,
                         "climber": self.climber,
@@ -99,6 +100,7 @@ class MyRobot(wpilib.SampleRobot):
                                 self.talon_right_front)
         self.fueltank = FuelTank(self)
         self.shooter = Shooter(self)
+        self.gear_lifter = GearLifter(self)
 
         dashboard2.graph("Heading", self.drive.get_heading)
 
