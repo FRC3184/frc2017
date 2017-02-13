@@ -4,6 +4,7 @@ from robotpy_ext.common_drivers.navx.ahrs import AHRS
 
 import mathutils
 from command_based import Subsystem
+from dashboard import dashboard2
 
 
 class Drivetrain(wpilib.RobotDrive, Subsystem):
@@ -26,6 +27,8 @@ class Drivetrain(wpilib.RobotDrive, Subsystem):
             self.wheel_diameter = 4
 
         self.ahrs = AHRS.create_i2c()
+
+        dashboard2.graph("Heading", lambda: self.get_heading() * 180 / math.pi)
 
     def radius_turn(self, pow, radius):
         D = self.robot_width / 2
@@ -63,7 +66,7 @@ class Drivetrain(wpilib.RobotDrive, Subsystem):
         return False
 
     def get_heading(self):
-        return self.ahrs.getRoll()
+        return self.ahrs.getPitch()
 
     def default(self):
         self.setLeftRightMotorOutputs(0, 0)

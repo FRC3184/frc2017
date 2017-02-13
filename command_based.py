@@ -22,6 +22,9 @@ class Command:
     def is_finished(self):
         pass
 
+    def cancel(self):
+        self.is_finished = lambda: True
+
 
 class Subsystem:
     def __init__(self, is_exclusive=True):

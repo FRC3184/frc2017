@@ -1,14 +1,12 @@
+import ctre.cantalon
 import wpilib
 
 import robot_time
-import ctre.cantalon
-
-import state_logging
 from commands import OpDriveCommand, MotionProfileDriveCommand
 from dashboard import dashboard2
 from drivetrain import Drivetrain
 from systems import Intake
-from motor import PWMMotor
+from wpy.motor import PWMMotor
 
 
 class MyRobot(wpilib.SampleRobot):
@@ -93,7 +91,6 @@ class MyRobot(wpilib.SampleRobot):
                                 self.talon_right_front)
         self.intake = Intake(self)
 
-        dashboard2.graph("Heading", self.drive.get_heading)
 
         self.js_left = wpilib.Joystick(0)
         self.js_right = wpilib.Joystick(1)
@@ -108,6 +105,9 @@ class MyRobot(wpilib.SampleRobot):
             self.periodic()
             robot_time.sleep(millis=self.delay_millis)
 
+        for cmd in self.current_commands:
+            cmd.cancel()
+
     def disabled(self):
         # Init
         while self.isDisabled():
@@ -115,6 +115,9 @@ class MyRobot(wpilib.SampleRobot):
 
             self.periodic()
             robot_time.sleep(millis=self.delay_millis)
+
+        for cmd in self.current_commands:
+            cmd.cancel()
 
     def operatorControl(self):
         # Init
@@ -126,6 +129,8 @@ class MyRobot(wpilib.SampleRobot):
             self.periodic()
             robot_time.sleep(millis=self.delay_millis)
 
+        for cmd in self.current_commands:
+            cmd.cancel()
 
 if __name__ == '__main__':
     wpilib.run(MyRobot)
