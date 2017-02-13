@@ -7,6 +7,8 @@ from dashboard import dashboard2
 from drivetrain import Drivetrain
 from systems import Intake
 from wpy.motor import PWMMotor
+from systems import FuelTank, Shooter, GearLifter
+from motor import PWMMotor
 
 
 class MyRobot(wpilib.SampleRobot):
@@ -19,8 +21,10 @@ class MyRobot(wpilib.SampleRobot):
         self.talon_right_front = None
         self.talon_right = None
         self.talon_left = None
+        self.talon_shooter = None
         self.victor_intake = None
         self.spark_climber = None
+        self.victor_blender = None
 
         self.js_left = None
         self.js_right = None
@@ -30,11 +34,14 @@ class MyRobot(wpilib.SampleRobot):
 
         self.drive = None
         self.climber = None
-        self.intake = None
+        self.fueltank = None
+        self.shooter = None
+        self.gear_lifter = None
 
         self.systems = {"drive": self.drive,
                         "climber": self.climber,
-                        "intake": self.intake}
+                        "intake": self.fueltank,
+                        "shooter": self.shooter}
 
     def periodic(self):
         """
@@ -66,8 +73,10 @@ class MyRobot(wpilib.SampleRobot):
         self.talon_left_rear = ctre.CANTalon(1)
         self.talon_right_rear = ctre.CANTalon(2)
         self.talon_right_front = ctre.CANTalon(3)
+        self.talon_shooter = ctre.CANTalon(4)
         self.victor_intake = PWMMotor(wpilib.Spark, pwm_port=0, pdp_port=0)
-        self.spark_climber = PWMMotor(wpilib.Spark, pwm_port=1, pdp_port=1)  # TODO actually get these values
+        self.victor_blender = PWMMotor(wpilib.Spark, pwm_port=1, pdp_port=1)
+        self.spark_climber = PWMMotor(wpilib.Spark, pwm_port=2, pdp_port=2)  # TODO actually get these values
 
         self.talon_left_rear.setControlMode(ctre.CANTalon.ControlMode.Follower)
         self.talon_left_rear.set(0)
@@ -89,7 +98,9 @@ class MyRobot(wpilib.SampleRobot):
 
         self.drive = Drivetrain(self.talon_left_front,
                                 self.talon_right_front)
-        self.intake = Intake(self)
+        self.fueltank = FuelTank(self)
+        self.shooter = Shooter(self)
+        self.gear_lifter = GearLifter(self)
 
 
         self.js_left = wpilib.Joystick(0)

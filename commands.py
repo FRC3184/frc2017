@@ -38,28 +38,40 @@ class OpDriveCommand(Command):
 
     def init(self):
         self.my_robot.drive.occupy()
-        self.my_robot.intake.occupy()
+        self.my_robot.fueltank.occupy()
 
     def is_finished(self):
         return not self.my_robot.isOperatorControl() or self.manually_finish
 
     def finish(self):
         self.my_robot.drive.release()
-        self.my_robot.intake.release()
+        self.my_robot.fueltank.release()
         self.manually_finish = False
 
     def run_periodic(self):
+
         js_left = self.my_robot.js_left
         js_right = self.my_robot.js_right
         spenner = 0.7
         if js_left.getRawButton(1):
             spenner = 1
 
-        self.my_robot.drive.arcadeDrive(spenner * js_left.getY(), -spenner * js_right.getX())
-        if js_left.getRawButton(2):
-            self.my_robot.intake.active()
+        self.my_robot.drive.arcadeDrive(-spenner * js_left.getY(), -spenner * js_right.getX())
+        if js_right.getRawButton(2):
+            self.my_robot.fueltank.blender_active()
         else:
-            self.my_robot.intake.inactive()
+            self.my_robot.fueltank.blender_inactive()
+        if js_left.getRawButton(2):
+            self.my_robot.fueltank.intake_active()
+        else:
+            self.my_robot.fueltank.intake_inactive()
+        if js_left.getRawButton(3):
+            self.my_robot.shooter.active()
+        else:
+            self.my_robot.shooter.inactive()
+
+        if js_right.getRawButton(5):
+            self.my_robot.gear_lifter.print_color()
         if js_left.getRawButton(5):
             self.manually_finish = True
             self.my_robot.cmd_queue.append(TurnToAngleCommand(self.my_robot, 0))
