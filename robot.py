@@ -2,13 +2,11 @@ import ctre.cantalon
 import wpilib
 
 import robot_time
-from commands import OpDriveCommand, MotionProfileDriveCommand
+from commands import OpDriveCommand, MotionProfileDriveCommand, OpFuelTankCommand, OpShooterCommand
 from dashboard import dashboard2
 from drivetrain import Drivetrain
-from systems import Intake
 from wpy.motor import PWMMotor
 from systems import FuelTank, Shooter, GearLifter
-from motor import PWMMotor
 
 
 class MyRobot(wpilib.SampleRobot):
@@ -28,6 +26,7 @@ class MyRobot(wpilib.SampleRobot):
 
         self.js_left = None
         self.js_right = None
+        self.gamepad = None
 
         self.cmd_queue = []
         self.current_commands = []
@@ -38,10 +37,7 @@ class MyRobot(wpilib.SampleRobot):
         self.shooter = None
         self.gear_lifter = None
 
-        self.systems = {"drive": self.drive,
-                        "climber": self.climber,
-                        "intake": self.fueltank,
-                        "shooter": self.shooter}
+        self.systems = {}
 
     def periodic(self):
         """
@@ -74,8 +70,8 @@ class MyRobot(wpilib.SampleRobot):
         self.talon_right_rear = ctre.CANTalon(2)
         self.talon_right_front = ctre.CANTalon(3)
         self.talon_shooter = ctre.CANTalon(4)
-        self.victor_intake = PWMMotor(wpilib.Spark, pwm_port=0, pdp_port=0)
-        self.victor_blender = PWMMotor(wpilib.Spark, pwm_port=1, pdp_port=1)
+        self.victor_intake = PWMMotor(wpilib.VictorSP, pwm_port=0, pdp_port=0)
+        self.victor_blender = PWMMotor(wpilib.VictorSP, pwm_port=1, pdp_port=1)
         self.spark_climber = PWMMotor(wpilib.Spark, pwm_port=2, pdp_port=2)  # TODO actually get these values
 
         self.talon_left_rear.setControlMode(ctre.CANTalon.ControlMode.Follower)
@@ -98,13 +94,19 @@ class MyRobot(wpilib.SampleRobot):
 
         self.drive = Drivetrain(self.talon_left_front,
                                 self.talon_right_front)
-        self.fueltank = FuelTank(self)
-        self.shooter = Shooter(self)
+        self.fueltank = FuelTank(self, self.victor_intake, self.victor_blender)
+        self.shooter = Shooter(self, self.talon_shooter)
         self.gear_lifter = GearLifter(self)
 
+        self.systems = {"drive": self.drive,
+                        "climber": self.climber,
+                        "intake": self.fueltank,
+                        "shooter": self.shooter,
+                        "gear_lifter": self.gear_lifter}
 
         self.js_left = wpilib.Joystick(0)
         self.js_right = wpilib.Joystick(1)
+        self.gamepad = wpilib.XboxController(2)
 
     def autonomous(self):
         self.cmd_queue.append(MotionProfileDriveCommand(self, 10 * 12, 5 * 12, 2 * 12))
@@ -133,6 +135,8 @@ class MyRobot(wpilib.SampleRobot):
     def operatorControl(self):
         # Init
         self.cmd_queue.append(OpDriveCommand(self))
+        self.cmd_queue.append(OpFuelTankCommand(self))
+        self.cmd_queue.append(OpShooterCommand(self))
 
         while self.isOperatorControl():
             # Loop

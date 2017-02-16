@@ -19,3 +19,6 @@ class PWMMotor:
 
     def set(self, power):
         self.controller.set(power)
+
+    def get(self):
+        return self.controller.get()

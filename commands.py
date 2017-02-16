@@ -28,6 +28,59 @@ class TurnToAngleCommand(Command):
         self.result = self.my_robot.drive.turn_to_angle(self.angle)
 
 
+class OpFuelTankCommand(Command):
+    def __init__(self, my_robot):
+        super().__init__(my_robot)
+
+    def can_run(self):
+        return not self.my_robot.fueltank.is_occupied
+
+    def init(self):
+        self.my_robot.fueltank.occupy()
+
+    def is_finished(self):
+        return not self.my_robot.isOperatorControl()
+
+    def finish(self):
+        self.my_robot.fueltank.release()
+
+    def run_periodic(self):
+        gamepad = self.my_robot.gamepad
+        fueltank = self.my_robot.fueltank
+        if gamepad.getBButton():
+            fueltank.blender_active()
+        else:
+            fueltank.blender_inactive()
+        if gamepad.getBumper(wpilib.GenericHID.Hand.kLeft):
+            fueltank.intake_active()
+        else:
+            fueltank.intake_inactive()
+
+
+class OpShooterCommand(Command):
+    def __init__(self, my_robot):
+        super().__init__(my_robot)
+
+    def can_run(self):
+        return not self.my_robot.shooter.is_occupied
+
+    def init(self):
+        self.my_robot.shooter.occupy()
+
+    def is_finished(self):
+        return not self.my_robot.isOperatorControl()
+
+    def finish(self):
+        self.my_robot.shooter.release()
+
+    def run_periodic(self):
+        gamepad = self.my_robot.gamepad
+        if gamepad.getBumper(wpilib.GenericHID.Hand.kRight):
+            self.my_robot.shooter.active()
+        else:
+            self.my_robot.shooter.inactive()
+
+
 class OpDriveCommand(Command):
     def __init__(self, my_robot):
         super().__init__(my_robot)
@@ -38,14 +91,12 @@ class OpDriveCommand(Command):
 
     def init(self):
         self.my_robot.drive.occupy()
-        self.my_robot.fueltank.occupy()
 
     def is_finished(self):
         return not self.my_robot.isOperatorControl() or self.manually_finish
 
     def finish(self):
         self.my_robot.drive.release()
-        self.my_robot.fueltank.release()
         self.manually_finish = False
 
     def run_periodic(self):
@@ -57,21 +108,7 @@ class OpDriveCommand(Command):
             spenner = 1
 
         self.my_robot.drive.arcadeDrive(-spenner * js_left.getY(), -spenner * js_right.getX())
-        if js_right.getRawButton(2):
-            self.my_robot.fueltank.blender_active()
-        else:
-            self.my_robot.fueltank.blender_inactive()
-        if js_left.getRawButton(2):
-            self.my_robot.fueltank.intake_active()
-        else:
-            self.my_robot.fueltank.intake_inactive()
-        if js_left.getRawButton(3):
-            self.my_robot.shooter.active()
-        else:
-            self.my_robot.shooter.inactive()
 
-        if js_right.getRawButton(5):
-            self.my_robot.gear_lifter.print_color()
         if js_left.getRawButton(5):
             self.manually_finish = True
             self.my_robot.cmd_queue.append(TurnToAngleCommand(self.my_robot, 0))

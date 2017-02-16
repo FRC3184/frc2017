@@ -1,12 +1,14 @@
+import wpilib
+
 import ColorSensor
 from ColorSensor import TCS34725
 from command_based import Subsystem
 
 
 class Climber(Subsystem):
-    def __init__(self, my_robot):
+    def __init__(self, my_robot, climber_motor):
         super().__init__(my_robot)
-        self.motor = my_robot.spark_climber
+        self.motor = climber_motor
 
     def active(self):
         self.motor.set(1)
@@ -19,12 +21,12 @@ class Climber(Subsystem):
 
 
 class FuelTank(Subsystem):
-    def __init__(self, my_robot):
+    def __init__(self, my_robot, intake_motor, blender_motor):
         super().__init__(my_robot)
-        self.intake_motor = my_robot.victor_intake
+        self.intake_motor = intake_motor
         self.my_robot = my_robot
 
-        self.blender_motor = my_robot.victor_blender
+        self.blender_motor = blender_motor
 
     def intake_active(self):
         self.intake_motor.set(.5)
@@ -33,8 +35,12 @@ class FuelTank(Subsystem):
         self.intake_motor.set(0)
 
     def blender_active(self):
-        js_left = self.my_robot.js_left
-        self.blender_motor.set(js_left.getRawAxis(3))
+        if self.blender_motor.get() == 0:
+            self.blender_motor.set(0.07)
+        else:
+            k = 0.1
+            x = self.blender_motor.get()
+            self.blender_motor.set(x + k*x*(1-x))
 
     def blender_inactive(self):
         self.blender_motor.set(0)
@@ -46,6 +52,9 @@ class FuelTank(Subsystem):
 class GearLifter(Subsystem):
     def __init__(self, my_robot):
         super().__init__(my_robot)
+
+        if wpilib.hal.HALIsSimulation():
+            return
         self.color_sensor = TCS34725()
         self.color_sensor.enable()
 
@@ -56,9 +65,9 @@ class GearLifter(Subsystem):
 
 
 class Shooter(Subsystem):
-    def __init__(self, my_robot):
+    def __init__(self, my_robot, shooter_motor):
         super().__init__(my_robot)
-        self.motor = my_robot.talon_shooter
+        self.motor = shooter_motor
 
     def active(self):
         self.motor.set(.7)  # TODO feedback
