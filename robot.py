@@ -2,11 +2,11 @@ import ctre.cantalon
 import wpilib
 
 import robot_time
-from commands import OpDriveCommand, MotionProfileDriveCommand, OpFuelTankCommand, OpShooterCommand
+from commands import OpDriveCommand, MotionProfileDriveCommand, OpFuelTankCommand, OpShooterCommand, OpClimberCommand
 from dashboard import dashboard2
 from drivetrain import Drivetrain
 from wpy.motor import PWMMotor
-from systems import FuelTank, Shooter, GearLifter
+from systems import FuelTank, Shooter, GearLifter, Climber
 
 
 class MyRobot(wpilib.SampleRobot):
@@ -70,9 +70,18 @@ class MyRobot(wpilib.SampleRobot):
         self.talon_right_rear = ctre.CANTalon(2)
         self.talon_right_front = ctre.CANTalon(3)
         self.talon_shooter = ctre.CANTalon(4)
-        self.victor_intake = PWMMotor(wpilib.VictorSP, pwm_port=0, pdp_port=0)
-        self.victor_blender = PWMMotor(wpilib.VictorSP, pwm_port=1, pdp_port=1)
-        self.spark_climber = PWMMotor(wpilib.Spark, pwm_port=2, pdp_port=2)  # TODO actually get these values
+        self.victor_intake = PWMMotor(wpilib.VictorSP, pwm_port=1, pdp_port=5)
+        self.victor_blender = PWMMotor(wpilib.VictorSP, pwm_port=0, pdp_port=4)
+        self.spark_climber = PWMMotor(wpilib.Spark, pwm_port=2, pdp_port=14)
+
+        self.talon_shooter.setFeedbackDevice(ctre.CANTalon.FeedbackDevice.CtreMagEncoder_Relative)
+        self.talon_shooter.reverseSensor(True)
+
+        dashboard2.graph("Intake Current", self.victor_intake.get_current)
+        dashboard2.graph("Blender Current", self.victor_blender.get_current)
+        dashboard2.graph("Climber Current", self.spark_climber.get_current)
+        dashboard2.graph("Shooter Speed", self.talon_shooter.getSpeed)
+        dashboard2.graph("Total Current", wpilib.PowerDistributionPanel().getTotalCurrent)
 
         self.talon_left_rear.setControlMode(ctre.CANTalon.ControlMode.Follower)
         self.talon_left_rear.set(0)
@@ -94,9 +103,11 @@ class MyRobot(wpilib.SampleRobot):
 
         self.drive = Drivetrain(self.talon_left_front,
                                 self.talon_right_front)
+        self.drive.setInvertedMotor(Drivetrain.MotorType.kRearRight, True)
         self.fueltank = FuelTank(self, self.victor_intake, self.victor_blender)
         self.shooter = Shooter(self, self.talon_shooter)
-        self.gear_lifter = GearLifter(self)
+        self.climber = Climber(self, self.spark_climber)
+        self.gear_lifter = None  # GearLifter(self)
 
         self.systems = {"drive": self.drive,
                         "climber": self.climber,
@@ -109,7 +120,7 @@ class MyRobot(wpilib.SampleRobot):
         self.gamepad = wpilib.XboxController(2)
 
     def autonomous(self):
-        self.cmd_queue.append(MotionProfileDriveCommand(self, 10 * 12, 5 * 12, 2 * 12))
+        # self.cmd_queue.append(MotionProfileDriveCommand(self, 10 * 12, 5 * 12, 2 * 12))
 
         # Init
         while self.isAutonomous():
@@ -137,6 +148,7 @@ class MyRobot(wpilib.SampleRobot):
         self.cmd_queue.append(OpDriveCommand(self))
         self.cmd_queue.append(OpFuelTankCommand(self))
         self.cmd_queue.append(OpShooterCommand(self))
+        self.cmd_queue.append(OpClimberCommand(self))
 
         while self.isOperatorControl():
             # Loop

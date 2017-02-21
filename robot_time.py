@@ -1,6 +1,8 @@
 import time
 import wpilib
 
+import wpy.driverstation
+
 _auto_time = 15  # Seconds in auto period
 _teleop_time = 2 * 60 + 15  # Seconds in teleop period
 _endgame_time = 30
@@ -16,7 +18,7 @@ def sleep(millis=None, seconds=None):
 
 
 def get_period_remaining_time():
-    return wpilib.DriverStation.getInstance().getMatchTime()
+    return wpy.driverstation.get_match_time()
 
 
 def get_match_time():

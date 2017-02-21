@@ -28,7 +28,7 @@ class Drivetrain(wpilib.RobotDrive, Subsystem):
 
         self.ahrs = AHRS.create_i2c()
 
-        dashboard2.graph("Heading", lambda: self.get_heading() * 180 / math.pi)
+        dashboard2.graph("Heading", lambda: self.get_heading())
 
     def radius_turn(self, pow, radius):
         D = self.robot_width / 2
@@ -66,7 +66,7 @@ class Drivetrain(wpilib.RobotDrive, Subsystem):
         return False
 
     def get_heading(self):
-        return self.ahrs.getPitch()
+        return self.ahrs.getYaw()
 
     def default(self):
         self.setLeftRightMotorOutputs(0, 0)

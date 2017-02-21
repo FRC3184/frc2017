@@ -53,6 +53,8 @@ class OpFuelTankCommand(Command):
             fueltank.blender_inactive()
         if gamepad.getBumper(wpilib.GenericHID.Hand.kLeft):
             fueltank.intake_active()
+        elif gamepad.getXButton():
+            fueltank.intake_reverse()
         else:
             fueltank.intake_inactive()
 
@@ -77,8 +79,35 @@ class OpShooterCommand(Command):
         gamepad = self.my_robot.gamepad
         if gamepad.getBumper(wpilib.GenericHID.Hand.kRight):
             self.my_robot.shooter.active()
+        elif gamepad.getYButton():
+            self.my_robot.shooter.reverse()
         else:
             self.my_robot.shooter.inactive()
+
+
+class OpClimberCommand(Command):
+    def __init__(self, my_robot):
+        super().__init__(my_robot)
+
+    def can_run(self):
+        return not self.my_robot.climber.is_occupied
+
+    def init(self):
+        self.my_robot.climber.occupy()
+
+    def is_finished(self):
+        return not self.my_robot.isOperatorControl()
+
+    def finish(self):
+        self.my_robot.climber.release()
+
+    def run_periodic(self):
+        gamepad = self.my_robot.gamepad
+        if gamepad.getAButton():
+            power = (self.my_robot.gamepad.getY(wpilib.GenericHID.Hand.kRight) + 1) / 2
+            self.my_robot.climber.active(power)
+        else:
+            self.my_robot.climber.inactive()
 
 
 class OpDriveCommand(Command):
