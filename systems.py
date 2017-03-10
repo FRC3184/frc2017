@@ -1,8 +1,11 @@
+import threading
+
 import ctre
 import wpilib
 import wpilib.interfaces
 
 import ColorSensor
+import robot_time
 from ColorSensor import TCS34725
 from command_based import Subsystem
 from dashboard import dashboard2
@@ -59,15 +62,11 @@ class GearLifter(Subsystem):
     def __init__(self, my_robot):
         super().__init__(my_robot)
 
-        if wpilib.hal.HALIsSimulation():
-            return
-        self.color_sensor = TCS34725()
-        self.color_sensor.enable()
+        self.grab = wpilib.DoubleSolenoid(0, 1)
+        self.lift = wpilib.DoubleSolenoid(2, 3)
 
     def print_color(self):
-        r, g, b, c = self.color_sensor.get_raw_data()
-        print("R: {} G: {} B: {} C: {}".format(r, g, b, c))
-        print("Color temp: {}".format(ColorSensor.calculate_color_temperature(r, g, b)))
+        pass
 
 
 class Shooter(Subsystem):
@@ -76,27 +75,43 @@ class Shooter(Subsystem):
 
         self.my_robot = my_robot
         self.motor = shooter_motor
+
         dashboard2.graph("Shooter current", shooter_motor.getOutputCurrent)
 
-        source = wpilib.interfaces.PIDSource.from_obj_or_callable(self.motor.getSpeed)
-        source.gerPIDSourceType = lambda: wpilib.interfaces.PIDSource.PIDSourceType.kRate  # FUCK wpilib
-        self.controller = wpilib.PIDController(Kp=0.1, Ki=0.0, Kd=0.0, kf=3 / 18700,
-                                               source=source, output=self.motor.set)
-        self.controller.setContinuous(False)
-        self.controller.setOutputRange(-1, 1)
-        self.controller.setInputRange(0, 18700 / 3)
+        class BangbangController:
+            def __init__(self, target_speed, source, output):
+                self.enabled = False
+                self.target_speed = target_speed
+                self.source = source
+                self.output = output
+
+            def run(self):
+                while True:
+                    if self.enabled:
+                        err = self.error()
+                        power = 4500 / 6322
+                        power += 0.00023 * err
+                        self.output(power)
+                    robot_time.sleep(millis=10)
+
+            def error(self):
+                return self.target_speed - self.source()
+        self.controller = BangbangController(4500, self.motor.getSpeed, self.motor.set)
+        self.control_thread = threading.Thread(target=self.controller.run)
+        self.control_thread.start()
+        dashboard2.graph("Error", self.controller.error)
+        dashboard2.graph("Output", self.motor.get)
         self.motor.setControlMode(ctre.CANTalon.ControlMode.PercentVbus)
 
     def active(self):
-        self.controller.enable()
-        self.controller.setSetpoint(4500)
+        self.controller.enabled = True
 
     def reverse(self):
-        self.controller.disable()
+        self.controller.enabled = False
         self.motor.set(-0.5)
 
     def inactive(self):
-        self.controller.disable()
+        self.controller.enabled = False
         self.motor.set(0)
 
     def default(self):

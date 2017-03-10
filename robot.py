@@ -107,7 +107,7 @@ class MyRobot(wpilib.SampleRobot):
         self.fueltank = FuelTank(self, self.victor_intake, self.victor_blender)
         self.shooter = Shooter(self, self.talon_shooter)
         self.climber = Climber(self, self.spark_climber)
-        self.gear_lifter = None  # GearLifter(self)
+        self.gear_lifter = GearLifter(self)
 
         self.systems = {"drive": self.drive,
                         "climber": self.climber,
