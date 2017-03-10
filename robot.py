@@ -1,5 +1,7 @@
 import ctre.cantalon
+import time
 import wpilib
+from networktables import NetworkTables
 
 import robot_time
 from commands import OpDriveCommand, MotionProfileDriveCommand, OpFuelTankCommand, OpShooterCommand, OpClimberCommand
@@ -65,6 +67,8 @@ class MyRobot(wpilib.SampleRobot):
     def robotInit(self):
         dashboard2.run()
 
+        dashboard2.chooser("Autonomous", ["None", "Gear", "Fuel", "Gear+Fuel"], default="None")
+
         self.talon_left_front = ctre.CANTalon(0)
         self.talon_left_rear = ctre.CANTalon(1)
         self.talon_right_rear = ctre.CANTalon(2)
@@ -119,8 +123,20 @@ class MyRobot(wpilib.SampleRobot):
         self.js_right = wpilib.Joystick(1)
         self.gamepad = wpilib.XboxController(2)
 
+        t_wait = 30
+        print("Waiting for vision... ({}s max)".format(t_wait))
+        NetworkTables.initialize("localhost")
+        _vision_table = NetworkTables.getTable("vision")
+        t_begin = time.time()
+
+        # Wait until either vision is ready or 30s has passed
+        while not _vision_table.getBoolean("ready", False) and not (time.time() - t_begin) > t_wait:
+            robot_time.sleep(seconds=1)
+        print("Robot ready!")
+
     def autonomous(self):
         # self.cmd_queue.append(MotionProfileDriveCommand(self, 10 * 12, 5 * 12, 2 * 12))
+        mode = dashboard2.get_chooser("Autonomous")
 
         # Init
         while self.isAutonomous():

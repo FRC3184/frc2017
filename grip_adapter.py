@@ -76,8 +76,9 @@ class PegTarget:
 def do_process(img):
     found_contours = _filter.process(img)
     if len(found_contours) in (2, 3):
-        contours = list(sorted([Contour(n) for n in found_contours], key=lambda n:n.x))
+        contours = list(sorted([Contour(n) for n in found_contours], key=lambda n: n.x))
         # TODO pair up contours more accurately
+
         peg = PegTarget(contours[0], contours[-1])
         _vision_table.putNumber("init_turn", peg.init_turn)
         _vision_table.putNumber("final_turn", peg.final_turn)
@@ -101,6 +102,7 @@ if __name__ == '__main__':
     last_millis = millis()
     val = True
     print("VISION READY")
+    _vision_table.putBoolean("ready", True)
     while val:
         val, frame = cap.read()
         do_process(frame)
