@@ -127,13 +127,13 @@ class MyRobot(wpilib.SampleRobot):
         if not wpilib.hal.isSimulation():
             t_wait = 30
             print("Waiting for vision... ({}s max)".format(t_wait))
-            NetworkTables.initialize("localhost")
             _vision_table = NetworkTables.getTable("vision")
             t_begin = time.time()
 
             # Wait until either vision is ready or 30s has passed
             while not _vision_table.getBoolean("ready", False) and not (time.time() - t_begin) > t_wait:
                 robot_time.sleep(seconds=1)
+                break
         print("Robot ready!")
 
     def autonomous(self):

@@ -62,6 +62,9 @@ class OpFuelTankCommand(Command):
 class OpGearCommand(Command):
     def __init__(self, my_robot):
         super().__init__(my_robot)
+        self.timer = wpilib.Timer()
+        self.timer.start()
+        self.was_down_last = False
 
     def can_run(self):
         return not self.my_robot.gear_lifter.is_occupied
@@ -80,9 +83,19 @@ class OpGearCommand(Command):
         gear_lifter = self.my_robot.gear_lifter
 
         if gamepad.getTriggerAxis(wpilib.GenericHID.Hand.kLeft) > 0.5:
-            gear_lifter.down()
+            gear_lifter.release_grab()
+            if not self.was_down_last:
+                self.timer.reset()
+                self.was_down_last = True
+            if self.timer.get() > 0.1:
+                gear_lifter.down()
         else:
-            gear_lifter.up()
+            gear_lifter.close_grab()
+            if self.was_down_last:
+                self.timer.reset()
+                self.was_down_last = False
+            if self.timer.get() > 0.1:
+                gear_lifter.up()
 
 
 class OpShooterCommand(Command):
