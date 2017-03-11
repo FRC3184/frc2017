@@ -59,6 +59,32 @@ class OpFuelTankCommand(Command):
             fueltank.intake_inactive()
 
 
+class OpGearCommand(Command):
+    def __init__(self, my_robot):
+        super().__init__(my_robot)
+
+    def can_run(self):
+        return not self.my_robot.gear_lifter.is_occupied
+
+    def init(self):
+        self.my_robot.gear_lifter.occupy()
+
+    def is_finished(self):
+        return not self.my_robot.isOperatorControl()
+
+    def finish(self):
+        self.my_robot.gear_lifter.release()
+
+    def run_periodic(self):
+        gamepad = self.my_robot.gamepad
+        gear_lifter = self.my_robot.gear_lifter
+
+        if gamepad.getTriggerAxis(wpilib.GenericHID.Hand.kLeft) > 0.5:
+            gear_lifter.down()
+        else:
+            gear_lifter.up()
+
+
 class OpShooterCommand(Command):
     def __init__(self, my_robot):
         super().__init__(my_robot)

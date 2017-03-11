@@ -4,7 +4,8 @@ import wpilib
 from networktables import NetworkTables
 
 import robot_time
-from commands import OpDriveCommand, MotionProfileDriveCommand, OpFuelTankCommand, OpShooterCommand, OpClimberCommand
+from commands import OpDriveCommand, MotionProfileDriveCommand, OpFuelTankCommand, OpShooterCommand, OpClimberCommand, \
+    OpGearCommand
 from dashboard import dashboard2
 from drivetrain import Drivetrain
 from wpy.motor import PWMMotor
@@ -123,15 +124,16 @@ class MyRobot(wpilib.SampleRobot):
         self.js_right = wpilib.Joystick(1)
         self.gamepad = wpilib.XboxController(2)
 
-        t_wait = 30
-        print("Waiting for vision... ({}s max)".format(t_wait))
-        NetworkTables.initialize("localhost")
-        _vision_table = NetworkTables.getTable("vision")
-        t_begin = time.time()
+        if not wpilib.hal.isSimulation():
+            t_wait = 30
+            print("Waiting for vision... ({}s max)".format(t_wait))
+            NetworkTables.initialize("localhost")
+            _vision_table = NetworkTables.getTable("vision")
+            t_begin = time.time()
 
-        # Wait until either vision is ready or 30s has passed
-        while not _vision_table.getBoolean("ready", False) and not (time.time() - t_begin) > t_wait:
-            robot_time.sleep(seconds=1)
+            # Wait until either vision is ready or 30s has passed
+            while not _vision_table.getBoolean("ready", False) and not (time.time() - t_begin) > t_wait:
+                robot_time.sleep(seconds=1)
         print("Robot ready!")
 
     def autonomous(self):
@@ -165,6 +167,7 @@ class MyRobot(wpilib.SampleRobot):
         self.cmd_queue.append(OpFuelTankCommand(self))
         self.cmd_queue.append(OpShooterCommand(self))
         self.cmd_queue.append(OpClimberCommand(self))
+        self.cmd_queue.append(OpGearCommand(self))
 
         while self.isOperatorControl():
             # Loop
