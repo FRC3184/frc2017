@@ -80,8 +80,9 @@ class GearLifter(Subsystem):
         self.lift.set(wpilib.DoubleSolenoid.Value.kReverse)
 
     def default(self):
-        self.up()
-        self.close_grab()
+        pass  # When not being commanded, hold position
+        # self.up()
+        # self.close_grab()
 
     def print_color(self):
         pass

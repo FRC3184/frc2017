@@ -5,7 +5,7 @@ from networktables import NetworkTables
 
 import robot_time
 from commands import OpDriveCommand, MotionProfileDriveCommand, OpFuelTankCommand, OpShooterCommand, OpClimberCommand, \
-    OpGearCommand
+    OpGearCommand, TurnToAngleCommand, AutoGearCommand
 from dashboard import dashboard2
 from drivetrain import Drivetrain
 from wpy.motor import PWMMotor
@@ -68,7 +68,7 @@ class MyRobot(wpilib.SampleRobot):
     def robotInit(self):
         dashboard2.run()
 
-        dashboard2.chooser("Autonomous", ["None", "Gear", "Fuel", "Gear+Fuel"], default="None")
+        dashboard2.chooser("Autonomous", ["None", "Gear Center", "Gear Left", "Gear Right"], default="None")
 
         self.talon_left_front = ctre.CANTalon(0)
         self.talon_left_rear = ctre.CANTalon(1)
@@ -133,12 +133,27 @@ class MyRobot(wpilib.SampleRobot):
             # Wait until either vision is ready or 30s has passed
             while not _vision_table.getBoolean("ready", False) and not (time.time() - t_begin) > t_wait:
                 robot_time.sleep(seconds=1)
-                break
+                break  # Skip vision since we aren't actually doing it
         print("Robot ready!")
 
     def autonomous(self):
-        # self.cmd_queue.append(MotionProfileDriveCommand(self, 10 * 12, 5 * 12, 2 * 12))
         mode = dashboard2.get_chooser("Autonomous")
+        if mode == "Gear Center":
+            self.cmd_queue.append(MotionProfileDriveCommand(self, 114.3, 1, 1, margin=1))
+            self.cmd_queue.append(AutoGearCommand(self, AutoGearCommand.State.down))
+            self.cmd_queue.append(MotionProfileDriveCommand(self, -35.29, 1, 1, margin=1))
+        if mode == "Gear Left":
+            self.cmd_queue.append(MotionProfileDriveCommand(self, 114.3, 1, 1, margin=1))
+            self.cmd_queue.append(TurnToAngleCommand(self, -60))
+            self.cmd_queue.append(MotionProfileDriveCommand(self, 35.29, 1, 1, margin=1))
+            self.cmd_queue.append(AutoGearCommand(self, AutoGearCommand.State.down))
+            self.cmd_queue.append(MotionProfileDriveCommand(self, -35.29, 1, 1, margin=1))
+        if mode == "Gear Right":
+            self.cmd_queue.append(MotionProfileDriveCommand(self, 114.3, 1, 1, margin=1))
+            self.cmd_queue.append(TurnToAngleCommand(self, 60))
+            self.cmd_queue.append(MotionProfileDriveCommand(self, 35.29, 1, 1, margin=1))
+            self.cmd_queue.append(AutoGearCommand(self, AutoGearCommand.State.down))
+            self.cmd_queue.append(MotionProfileDriveCommand(self, -35.29, 1, 1, margin=1))
 
         # Init
         while self.isAutonomous():

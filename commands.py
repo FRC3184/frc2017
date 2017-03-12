@@ -98,6 +98,50 @@ class OpGearCommand(Command):
                 gear_lifter.up()
 
 
+class AutoGearCommand(Command):
+    class State:
+        down = 0
+        up = 1
+
+    def __init__(self, my_robot, state):
+        super().__init__(my_robot)
+        self.timer = wpilib.Timer()
+        self.timer.start()
+        self.was_down_last = False
+        self.state = state
+
+        self.delay = 0.1
+        self.wait_after_delay = 0.2
+
+    def can_run(self):
+        return not self.my_robot.gear_lifter.is_occupied
+
+    def init(self):
+        gear_lifter = self.my_robot.gear_lifter
+
+        gear_lifter.occupy()
+        self.timer.reset()
+        if self.state == self.State.down:
+            gear_lifter.release_grab()
+        elif self.state == self.State.up:
+            gear_lifter.close_grab()
+
+    def is_finished(self):
+        return self.timer.get() > self.delay + self.wait_after_delay
+
+    def finish(self):
+        self.my_robot.gear_lifter.release()
+
+    def run_periodic(self):
+        gear_lifter = self.my_robot.gear_lifter
+
+        if self.timer.get() > self.delay:
+            if self.state == self.State.up:
+                gear_lifter.up()
+            elif self.state == self.State.down:
+                gear_lifter.down()
+
+
 class OpShooterCommand(Command):
     def __init__(self, my_robot):
         super().__init__(my_robot)
