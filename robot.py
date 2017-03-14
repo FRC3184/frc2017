@@ -1,11 +1,14 @@
 import ctre.cantalon
 import time
+
+import math
 import wpilib
 from networktables import NetworkTables
 
 import robot_time
+from command_based import CommandSequence
 from commands import OpDriveCommand, MotionProfileDriveCommand, OpFuelTankCommand, OpShooterCommand, OpClimberCommand, \
-    OpGearCommand, TurnToAngleCommand, AutoGearCommand
+    OpGearCommand, TurnToAngleCommand, AutoGearCommand, DistanceDriveCommand
 from dashboard import dashboard2
 from drivetrain import Drivetrain
 from wpy.motor import PWMMotor
@@ -85,8 +88,9 @@ class MyRobot(wpilib.SampleRobot):
         dashboard2.graph("Intake Current", self.victor_intake.get_current)
         dashboard2.graph("Blender Current", self.victor_blender.get_current)
         dashboard2.graph("Climber Current", self.spark_climber.get_current)
-        dashboard2.graph("Shooter Speed", self.talon_shooter.getSpeed)
         dashboard2.graph("Total Current", wpilib.PowerDistributionPanel().getTotalCurrent)
+        dashboard2.graph("Left", lambda: self.talon_left.getPosition() * (math.pi*4))
+        dashboard2.graph("Right", lambda: self.talon_right.getPosition() * (math.pi*4))
 
         self.talon_left_rear.setControlMode(ctre.CANTalon.ControlMode.Follower)
         self.talon_left_rear.set(0)
@@ -138,22 +142,36 @@ class MyRobot(wpilib.SampleRobot):
 
     def autonomous(self):
         mode = dashboard2.get_chooser("Autonomous")
+
+        self.talon_left.setPosition(0)
+        self.talon_right.setPosition(0)
+
         if mode == "Gear Center":
-            self.cmd_queue.append(MotionProfileDriveCommand(self, 114.3, 1, 1, margin=1))
-            self.cmd_queue.append(AutoGearCommand(self, AutoGearCommand.State.down))
-            self.cmd_queue.append(MotionProfileDriveCommand(self, -35.29, 1, 1, margin=1))
+            cmds = []
+            cmds.append(AutoGearCommand(self, AutoGearCommand.State.up))
+            cmds.append(DistanceDriveCommand(self, 80, 0.6))
+            cmds.append(AutoGearCommand(self, AutoGearCommand.State.down))
+            cmds.append(DistanceDriveCommand(self, 30, -0.8))
+            self.cmd_queue.append(CommandSequence(self, cmds))
+            # self.cmd_queue.append(MotionProfileDriveCommand(self, -35.29, 1, 1, margin=1))
         if mode == "Gear Left":
-            self.cmd_queue.append(MotionProfileDriveCommand(self, 114.3, 1, 1, margin=1))
-            self.cmd_queue.append(TurnToAngleCommand(self, -60))
-            self.cmd_queue.append(MotionProfileDriveCommand(self, 35.29, 1, 1, margin=1))
-            self.cmd_queue.append(AutoGearCommand(self, AutoGearCommand.State.down))
-            self.cmd_queue.append(MotionProfileDriveCommand(self, -35.29, 1, 1, margin=1))
+            cmds = []
+            cmds.append(AutoGearCommand(self, AutoGearCommand.State.up))
+            cmds.append(DistanceDriveCommand(self, 70, 0.6))
+            cmds.append(TurnToAngleCommand(self, 60))
+            cmds.append(DistanceDriveCommand(self, 40, 0.6))
+            cmds.append(AutoGearCommand(self, AutoGearCommand.State.down))
+            cmds.append(DistanceDriveCommand(self, 30, -0.8))
+            self.cmd_queue.append(CommandSequence(self, cmds))
         if mode == "Gear Right":
-            self.cmd_queue.append(MotionProfileDriveCommand(self, 114.3, 1, 1, margin=1))
-            self.cmd_queue.append(TurnToAngleCommand(self, 60))
-            self.cmd_queue.append(MotionProfileDriveCommand(self, 35.29, 1, 1, margin=1))
-            self.cmd_queue.append(AutoGearCommand(self, AutoGearCommand.State.down))
-            self.cmd_queue.append(MotionProfileDriveCommand(self, -35.29, 1, 1, margin=1))
+            cmds = []
+            cmds.append(AutoGearCommand(self, AutoGearCommand.State.up))
+            cmds.append(DistanceDriveCommand(self, 80, 0.6))
+            cmds.append(TurnToAngleCommand(self, 60))
+            cmds.append(DistanceDriveCommand(self, 30, 0.6))
+            cmds.append(AutoGearCommand(self, AutoGearCommand.State.down))
+            cmds.append(DistanceDriveCommand(self, 30, -0.8))
+            self.cmd_queue.append(CommandSequence(self, cmds))
 
         # Init
         while self.isAutonomous():

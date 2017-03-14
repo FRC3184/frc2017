@@ -65,24 +65,36 @@ class GearLifter(Subsystem):
         self.grab = wpilib.DoubleSolenoid(0, 1)
         self.lift = wpilib.DoubleSolenoid(2, 3)
 
+        self.arm_up_last = True
+        self.grab_close_last = True
+
     def release_grab(self):
         self.grab.set(wpilib.DoubleSolenoid.Value.kReverse)
+        self.grab_close_last = False
 
     def close_grab(self):
         self.grab.set(wpilib.DoubleSolenoid.Value.kForward)
+        self.grab_close_last = True
 
     def down(self):
         # arm down
         self.lift.set(wpilib.DoubleSolenoid.Value.kForward)
+        self.arm_up_last = False
 
     def up(self):
         # arm up
         self.lift.set(wpilib.DoubleSolenoid.Value.kReverse)
+        self.arm_up_last = True
 
     def default(self):
-        pass  # When not being commanded, hold position
-        # self.up()
-        # self.close_grab()
+        if self.arm_up_last:
+            self.up()
+        else:
+            self.down()
+        if self.grab_close_last:
+            self.close_grab()
+        else:
+            self.release_grab()
 
     def print_color(self):
         pass

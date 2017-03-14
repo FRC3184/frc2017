@@ -16,6 +16,8 @@ class TurnToAngleCommand(Command):
         return not self.my_robot.drive.is_occupied
 
     def init(self):
+        print("Turn started")
+        self.my_robot.drive.ahrs.reset()
         self.my_robot.drive.occupy()
 
     def is_finished(self):
@@ -123,7 +125,9 @@ class AutoGearCommand(Command):
         self.timer.reset()
         if self.state == self.State.down:
             gear_lifter.release_grab()
+            print("Gear down")
         elif self.state == self.State.up:
+            print("Gear up")
             gear_lifter.close_grab()
 
     def is_finished(self):
@@ -225,6 +229,40 @@ class OpDriveCommand(Command):
             self.manually_finish = True
             self.my_robot.cmd_queue.append(TurnToAngleCommand(self.my_robot, 0))
             self.my_robot.cmd_queue.append(self)
+
+
+class DistanceDriveCommand(Command):
+    def __init__(self, my_robot, dist, percent_vbus, margin=2):
+        super().__init__(my_robot)
+        self.drive = my_robot.drive
+        self.dist = dist
+        self.vbus = percent_vbus
+        self.margin = margin
+
+        self.scale_factor = (math.pi * self.drive.wheel_diameter)
+        self.dist_revs = self.dist / self.scale_factor
+
+    def can_run(self):
+        return not self.drive.is_occupied
+
+    def init(self):
+        print("{}in drive started".format(self.dist))
+        self.drive.occupy()
+        self.my_robot.talon_left.setPosition(0)
+        self.my_robot.talon_right.setPosition(0)
+
+    def is_finished(self):
+        left_on = abs(self.my_robot.talon_left.getPosition() * self.scale_factor) > self.dist
+        right_on = abs(self.my_robot.talon_right.getPosition() * self.scale_factor) > self.dist
+        return left_on or right_on
+
+    def finish(self):
+        self.drive.release()
+        self.my_robot.talon_left.setPosition(0)
+        self.my_robot.talon_right.setPosition(0)
+
+    def run_periodic(self):
+        self.drive.arcadeDrive(self.vbus, 0)
 
 
 class MotionProfileDriveCommand(Command):

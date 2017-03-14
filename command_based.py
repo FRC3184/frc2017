@@ -1,4 +1,5 @@
 # import robot
+import wpilib
 
 
 class Command:
@@ -9,6 +10,9 @@ class Command:
         :type my_robot: robot.MyRobot
         """
         self.my_robot = my_robot
+
+    def can_run(self):
+        return True
 
     def init(self):
         pass
@@ -21,6 +25,35 @@ class Command:
 
     def is_finished(self):
         pass
+
+    def cancel(self):
+        self.is_finished = lambda: True
+
+
+class CommandSequence(Command):
+    def __init__(self, my_robot, cmds):
+        """
+
+        :param my_robot: The robot
+        :type my_robot: robot.MyRobot
+        """
+        super().__init__(my_robot)
+        self.cmds = cmds
+        self.current = self.cmds.pop(0)
+
+    def init(self):
+        self.my_robot.cmd_queue.append(self.current)
+
+    def run_periodic(self):
+        if self.current.is_finished():
+            self.current = self.cmds.pop(0)
+            self.my_robot.cmd_queue.append(self.current)
+
+    def finish(self):
+        pass
+
+    def is_finished(self):
+        return len(self.cmds) == 0
 
     def cancel(self):
         self.is_finished = lambda: True
