@@ -85,7 +85,10 @@ class OpGearCommand(Command):
         gear_lifter = self.my_robot.gear_lifter
 
         if gamepad.getTriggerAxis(wpilib.GenericHID.Hand.kLeft) > 0.5:
-            gear_lifter.release_grab()
+            if gamepad.getTriggerAxis(wpilib.GenericHID.Hand.kRight) > 0.5:
+                gear_lifter.close_grab()
+            else:
+                gear_lifter.release_grab()
             if not self.was_down_last:
                 self.timer.reset()
                 self.was_down_last = True
@@ -241,6 +244,7 @@ class DistanceDriveCommand(Command):
 
         self.scale_factor = (math.pi * self.drive.wheel_diameter)
         self.dist_revs = self.dist / self.scale_factor
+        self.angle = 0
 
     def can_run(self):
         return not self.drive.is_occupied
@@ -250,6 +254,7 @@ class DistanceDriveCommand(Command):
         self.drive.occupy()
         self.my_robot.talon_left.setPosition(0)
         self.my_robot.talon_right.setPosition(0)
+        self.angle = self.drive.get_heading()
 
     def is_finished(self):
         left_on = abs(self.my_robot.talon_left.getPosition() * self.scale_factor) > self.dist
@@ -262,7 +267,8 @@ class DistanceDriveCommand(Command):
         self.my_robot.talon_right.setPosition(0)
 
     def run_periodic(self):
-        self.drive.arcadeDrive(self.vbus, 0)
+        err = self.angle - self.drive.get_heading()
+        self.drive.arcadeDrive(self.vbus, -err / 180)
 
 
 class MotionProfileDriveCommand(Command):

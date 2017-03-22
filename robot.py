@@ -70,6 +70,7 @@ class MyRobot(wpilib.SampleRobot):
 
     def robotInit(self):
         dashboard2.run()
+        wpilib.CameraServer.launch()
 
         dashboard2.chooser("Autonomous", ["None", "Gear Center", "Gear Left", "Gear Right"], default="None")
 
@@ -157,8 +158,8 @@ class MyRobot(wpilib.SampleRobot):
         if mode == "Gear Left":
             cmds = []
             cmds.append(AutoGearCommand(self, AutoGearCommand.State.up))
-            cmds.append(DistanceDriveCommand(self, 70, 0.6))
-            cmds.append(TurnToAngleCommand(self, 60))
+            cmds.append(DistanceDriveCommand(self, 75, 0.6))
+            cmds.append(TurnToAngleCommand(self, 55))
             cmds.append(DistanceDriveCommand(self, 40, 0.6))
             cmds.append(AutoGearCommand(self, AutoGearCommand.State.down))
             cmds.append(DistanceDriveCommand(self, 30, -0.8))
@@ -166,9 +167,9 @@ class MyRobot(wpilib.SampleRobot):
         if mode == "Gear Right":
             cmds = []
             cmds.append(AutoGearCommand(self, AutoGearCommand.State.up))
-            cmds.append(DistanceDriveCommand(self, 80, 0.6))
-            cmds.append(TurnToAngleCommand(self, 60))
-            cmds.append(DistanceDriveCommand(self, 30, 0.6))
+            cmds.append(DistanceDriveCommand(self, 75, 0.6))
+            cmds.append(TurnToAngleCommand(self, -55))
+            cmds.append(DistanceDriveCommand(self, 40, 0.6))
             cmds.append(AutoGearCommand(self, AutoGearCommand.State.down))
             cmds.append(DistanceDriveCommand(self, 30, -0.8))
             self.cmd_queue.append(CommandSequence(self, cmds))

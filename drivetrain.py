@@ -56,7 +56,7 @@ class Drivetrain(wpilib.RobotDrive, Subsystem):
         if abs(err) < allowable_error:
             self.arcadeDrive(0, 0)
             return True
-        min_power = .35
+        min_power = .6
         p = err / 180
         if abs(p) < min_power:
             p = mathutils.sgn(p) * min_power
