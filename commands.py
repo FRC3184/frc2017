@@ -223,15 +223,14 @@ class OpDriveCommand(Command):
         js_left = self.my_robot.js_left
         js_right = self.my_robot.js_right
         spenner = 0.7
-        if js_left.getRawButton(1):
+        spenner_button = 1
+        tank_button = 3
+        if js_left.getRawButton(spenner_button) or js_right.getRawButton(spenner_button):
             spenner = 1
-
-        self.my_robot.drive.arcadeDrive(-spenner * js_left.getY(), -spenner * js_right.getX())
-
-        if js_left.getRawButton(5):
-            self.manually_finish = True
-            self.my_robot.cmd_queue.append(TurnToAngleCommand(self.my_robot, 0))
-            self.my_robot.cmd_queue.append(self)
+        if js_left.getRawButton(tank_button) or js_right.getRawButton(tank_button):
+            self.my_robot.drive.tankDrive(-spenner * js_left.getY(), -spenner * js_right.getY())
+        else:
+            self.my_robot.drive.arcadeDrive(-spenner * js_left.getY(), -spenner * js_right.getX())
 
 
 class DistanceDriveCommand(Command):
