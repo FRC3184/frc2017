@@ -27,7 +27,7 @@ class MyRobot(wpilib.SampleRobot):
         self.talon_left = None
         self.talon_shooter = None
         self.victor_intake = None
-        self.spark_climber = None
+        self.talon_climber = None
         self.victor_blender = None
 
         self.js_left = None
@@ -81,17 +81,18 @@ class MyRobot(wpilib.SampleRobot):
         self.talon_shooter = ctre.CANTalon(4)
         self.victor_intake = PWMMotor(wpilib.VictorSP, pwm_port=1, pdp_port=5)
         self.victor_blender = PWMMotor(wpilib.VictorSP, pwm_port=0, pdp_port=4)
-        self.spark_climber = PWMMotor(wpilib.Spark, pwm_port=2, pdp_port=14)
+        self.talon_climber = PWMMotor(wpilib.Talon, pwm_port=2, pdp_port=14)
 
         self.talon_shooter.setFeedbackDevice(ctre.CANTalon.FeedbackDevice.CtreMagEncoder_Relative)
         self.talon_shooter.reverseSensor(True)
 
-        dashboard2.graph("Intake Current", self.victor_intake.get_current)
-        dashboard2.graph("Blender Current", self.victor_blender.get_current)
-        dashboard2.graph("Climber Current", self.spark_climber.get_current)
-        dashboard2.graph("Total Current", wpilib.PowerDistributionPanel().getTotalCurrent)
         dashboard2.graph("Left", lambda: self.talon_left.getPosition() * (math.pi*4))
         dashboard2.graph("Right", lambda: self.talon_right.getPosition() * (math.pi*4))
+
+        sensor_type = ctre.CANTalon.FeedbackDevice.CtreMagEncoder_Relative
+        sensor_present = ctre.CANTalon.FeedbackDeviceStatus.Present
+        dashboard2.indicator("Left Encoder", lambda: self.talon_left.isSensorPresent(sensor_type) == sensor_present)
+        dashboard2.indicator("Right Encoder", lambda: self.talon_right.isSensorPresent(sensor_type) == sensor_present)
 
         self.talon_left_rear.setControlMode(ctre.CANTalon.ControlMode.Follower)
         self.talon_left_rear.set(0)
@@ -116,7 +117,7 @@ class MyRobot(wpilib.SampleRobot):
         self.drive.setInvertedMotor(Drivetrain.MotorType.kRearRight, True)
         self.fueltank = FuelTank(self, self.victor_intake, self.victor_blender)
         self.shooter = Shooter(self, self.talon_shooter)
-        self.climber = Climber(self, self.spark_climber)
+        self.climber = Climber(self, self.talon_climber)
         self.gear_lifter = GearLifter(self)
 
         self.systems = {"drive": self.drive,
