@@ -1,4 +1,5 @@
 import wpilib
+from networktables import NetworkTables
 
 import mathutils
 from command_based import Command
@@ -319,6 +320,103 @@ class MotionProfileDriveCommand(Command):
         dist_revs = self.dist / self.scale_factor
         self.my_robot.talon_left.set(dist_revs)
         self.my_robot.talon_right.set(dist_revs)
+
+
+class AutoShooterCommand(Command):
+    def __init__(self, my_robot, time):
+        super().__init__(my_robot)
+        self.shooter = my_robot.shooter
+        self.timer = wpilib.Timer()
+        self.time = time
+
+    def can_run(self):
+        return not self.shooter.is_occupied
+
+    def init(self):
+        self.shooter.occupy()
+        self.timer.reset()
+        self.timer.start()
+
+    def is_finished(self):
+        return self.timer.get() > self.time
+
+    def finish(self):
+        self.shooter.release()
+
+    def run_periodic(self):
+        self.shooter.active()
+
+
+class AutoFuelTankCommand(Command):
+    def __init__(self, my_robot, time):
+        super().__init__(my_robot)
+        self.fueltank = my_robot.fueltank
+        self.timer = wpilib.Timer()
+        self.time = time
+
+    def can_run(self):
+        return not self.fueltank.is_occupied
+
+    def init(self):
+        self.fueltank.occupy()
+        self.timer.reset()
+        self.timer.start()
+
+    def is_finished(self):
+        return self.timer.get() > self.time
+
+    def finish(self):
+        self.fueltank.release()
+
+    def run_periodic(self):
+        self.fueltank.blender_active()
+        self.fueltank.intake_active()
+
+
+class TurnToBoilerCommand(Command):
+    def __init__(self, my_robot):
+        super().__init__(my_robot)
+        self.result = False
+        self.angle = 0
+        self.state = 0
+        self.vision_table = NetworkTables.getTable("vision")
+
+    def can_run(self):
+        return not self.my_robot.drive.is_occupied
+
+    def init(self):
+        self.my_robot.drive.occupy()
+        self.result = False
+        self.angle = 0
+        self.state = 0
+        self.vision_table = NetworkTables.getTable("vision")
+
+    def is_finished(self):
+        return self.result
+
+    def finish(self):
+        self.my_robot.drive.release()
+
+    def run_periodic(self):
+        if self.state == 0:
+            if self.vision_table.getBoolean("seeBoiler", False):
+                self.state = 1
+                self.angle = self.vision_table.getNumber("angle") * 0.5
+                self.my_robot.drive.ahrs.reset()
+            else:
+                self.my_robot.drive.arcadeDrive(0, 0.5)
+
+        elif self.state == 1:
+            self.result = self.my_robot.drive.turn_to_angle(self.angle, allowable_error=1.5)
+            # self.state = 2
+        elif self.state == 2:
+            self.angle = self.vision_table.getNumber("angle")
+            if abs(self.angle) < 1:
+                self.result = True
+            else:
+                self.state = 1
+                self.angle = self.vision_table.getNumber("angle") * 0.5
+                self.my_robot.drive.ahrs.reset()
 
 
 class MotionProfileRadiusDriveCommand(Command):

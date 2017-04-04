@@ -46,12 +46,7 @@ class FuelTank(Subsystem):
         self.intake_motor.set(0)
 
     def blender_active(self):
-        if self.blender_motor.get() == 0:
-            self.blender_motor.set(0.07)
-        else:
-            k = 0.1
-            x = self.blender_motor.get()
-            self.blender_motor.set(x + k*x*(0.5 - x))
+        self.blender_motor.set(0.75)
 
     def blender_inactive(self):
         self.blender_motor.set(0)
@@ -111,7 +106,8 @@ class Shooter(Subsystem):
 
         dashboard2.graph("Shooter current", shooter_motor.getOutputCurrent)
 
-        self.controller = control.RPMController(4100, 6322, 0.00023, self.motor.getSpeed, self.motor.set)
+        target_rpm = 4100  # ADJUST THIS TO DIAL SHOOTER
+        self.controller = control.RPMController(target_rpm, 6322, 0.00023, self.motor.getSpeed, self.motor.set)
         self.controller.start()
         dashboard2.graph("Error", self.controller.error)
         self.motor.setControlMode(ctre.CANTalon.ControlMode.PercentVbus)

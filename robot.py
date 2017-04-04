@@ -8,7 +8,7 @@ from networktables import NetworkTables
 import robot_time
 from command_based import CommandSequence
 from commands import OpDriveCommand, MotionProfileDriveCommand, OpFuelTankCommand, OpShooterCommand, OpClimberCommand, \
-    OpGearCommand, TurnToAngleCommand, AutoGearCommand, DistanceDriveCommand
+    OpGearCommand, TurnToAngleCommand, AutoGearCommand, DistanceDriveCommand, TurnToBoilerCommand
 from dashboard import dashboard2
 from drivetrain import Drivetrain
 from wpy.motor import PWMMotor
@@ -72,7 +72,7 @@ class MyRobot(wpilib.SampleRobot):
         dashboard2.run()
         wpilib.CameraServer.launch()
 
-        dashboard2.chooser("Autonomous", ["None", "Gear Center", "Gear Left", "Gear Right"], default="None")
+        dashboard2.chooser("Autonomous", ["None", "Gear Center", "Gear Left", "Gear Right", "Boiler"], default="None")
 
         self.talon_left_front = ctre.CANTalon(0)
         self.talon_left_rear = ctre.CANTalon(1)
@@ -85,14 +85,6 @@ class MyRobot(wpilib.SampleRobot):
 
         self.talon_shooter.setFeedbackDevice(ctre.CANTalon.FeedbackDevice.CtreMagEncoder_Relative)
         self.talon_shooter.reverseSensor(True)
-
-        dashboard2.graph("Left", lambda: self.talon_left.getPosition() * (math.pi*4))
-        dashboard2.graph("Right", lambda: self.talon_right.getPosition() * (math.pi*4))
-
-        sensor_type = ctre.CANTalon.FeedbackDevice.CtreMagEncoder_Relative
-        sensor_present = ctre.CANTalon.FeedbackDeviceStatus.Present
-        dashboard2.indicator("Left Encoder", lambda: self.talon_left.isSensorPresent(sensor_type) == sensor_present)
-        dashboard2.indicator("Right Encoder", lambda: self.talon_right.isSensorPresent(sensor_type) == sensor_present)
 
         self.talon_left_rear.setControlMode(ctre.CANTalon.ControlMode.Follower)
         self.talon_left_rear.set(0)
@@ -112,8 +104,16 @@ class MyRobot(wpilib.SampleRobot):
         self.talon_right.setF(kF)
         self.talon_right.setP(kP)
 
-        self.drive = Drivetrain(self.talon_left_front,
-                                self.talon_right_front)
+        dashboard2.graph("Left", lambda: self.talon_left.getPosition() * (math.pi * 4))
+        dashboard2.graph("Right", lambda: self.talon_right.getPosition() * (math.pi * 4))
+
+        sensor_type = ctre.CANTalon.FeedbackDevice.CtreMagEncoder_Relative
+        sensor_present = ctre.CANTalon.FeedbackDeviceStatus.Present
+        dashboard2.indicator("Left Encoder", lambda: self.talon_left.isSensorPresent(sensor_type) == sensor_present)
+        dashboard2.indicator("Right Encoder", lambda: self.talon_right.isSensorPresent(sensor_type) == sensor_present)
+
+        self.drive = Drivetrain(self.talon_left,
+                                self.talon_right)
         self.drive.setInvertedMotor(Drivetrain.MotorType.kRearRight, True)
         self.fueltank = FuelTank(self, self.victor_intake, self.victor_blender)
         self.shooter = Shooter(self, self.talon_shooter)
@@ -139,7 +139,6 @@ class MyRobot(wpilib.SampleRobot):
             # Wait until either vision is ready or 30s has passed
             while not _vision_table.getBoolean("ready", False) and not (time.time() - t_begin) > t_wait:
                 robot_time.sleep(seconds=1)
-                break  # Skip vision since we aren't actually doing it
         print("Robot ready!")
 
     def autonomous(self):
@@ -173,6 +172,10 @@ class MyRobot(wpilib.SampleRobot):
             cmds.append(DistanceDriveCommand(self, 40, 0.6))
             cmds.append(AutoGearCommand(self, AutoGearCommand.State.down))
             cmds.append(DistanceDriveCommand(self, 30, -0.8))
+            self.cmd_queue.append(CommandSequence(self, cmds))
+        if mode == "Boiler":
+            cmds = []
+            cmds.append(TurnToBoilerCommand(self))
             self.cmd_queue.append(CommandSequence(self, cmds))
 
         # Init
