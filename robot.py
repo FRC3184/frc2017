@@ -8,7 +8,8 @@ from networktables import NetworkTables
 import robot_time
 from command_based import CommandSequence
 from commands import OpDriveCommand, MotionProfileDriveCommand, OpFuelTankCommand, OpShooterCommand, OpClimberCommand, \
-    OpGearCommand, TurnToAngleCommand, AutoGearCommand, DistanceDriveCommand, TurnToBoilerCommand
+    OpGearCommand, TurnToAngleCommand, AutoGearCommand, DistanceDriveCommand, TurnToBoilerCommand, AutoFuelTankCommand, \
+    TimeDriveCommand, AutoShooterCommand
 from dashboard import dashboard2
 from drivetrain import Drivetrain
 from wpy.motor import PWMMotor
@@ -72,7 +73,9 @@ class MyRobot(wpilib.SampleRobot):
         dashboard2.run()
         wpilib.CameraServer.launch()
 
-        dashboard2.chooser("Autonomous", ["None", "Gear Center", "Gear Left", "Gear Right", "Boiler"], default="None")
+        dashboard2.chooser("Autonomous", ["None", "Gear Center", "Gear Left", "Gear Right", "Hopper/Boiler Blue",
+                                          "Hopper/Boiler Red", "Boiler/Mobility Blue", "Boiler/Mobility Red"],
+                           default="None")
 
         self.talon_left_front = ctre.CANTalon(0)
         self.talon_left_rear = ctre.CANTalon(1)
@@ -104,8 +107,8 @@ class MyRobot(wpilib.SampleRobot):
         self.talon_right.setF(kF)
         self.talon_right.setP(kP)
 
-        dashboard2.graph("Left", lambda: self.talon_left.getPosition() * (math.pi * 4))
-        dashboard2.graph("Right", lambda: self.talon_right.getPosition() * (math.pi * 4))
+        dashboard2.graph("Blender Current", self.victor_blender.get_current)
+        dashboard2.graph("Climber Current", self.talon_climber.get_current)
 
         sensor_type = ctre.CANTalon.FeedbackDevice.CtreMagEncoder_Relative
         sensor_present = ctre.CANTalon.FeedbackDeviceStatus.Present
@@ -152,31 +155,56 @@ class MyRobot(wpilib.SampleRobot):
             cmds.append(AutoGearCommand(self, AutoGearCommand.State.up))
             cmds.append(DistanceDriveCommand(self, 80, 0.6))
             cmds.append(AutoGearCommand(self, AutoGearCommand.State.down))
-            cmds.append(DistanceDriveCommand(self, 30, -0.8))
+            cmds.append(DistanceDriveCommand(self, 30, -0.6))
             self.cmd_queue.append(CommandSequence(self, cmds))
             # self.cmd_queue.append(MotionProfileDriveCommand(self, -35.29, 1, 1, margin=1))
         if mode == "Gear Left":
             cmds = []
             cmds.append(AutoGearCommand(self, AutoGearCommand.State.up))
-            cmds.append(DistanceDriveCommand(self, 75, 0.6))
+            cmds.append(DistanceDriveCommand(self, 70, 0.6))
             cmds.append(TurnToAngleCommand(self, 55))
             cmds.append(DistanceDriveCommand(self, 40, 0.6))
             cmds.append(AutoGearCommand(self, AutoGearCommand.State.down))
-            cmds.append(DistanceDriveCommand(self, 30, -0.8))
+            cmds.append(DistanceDriveCommand(self, 30, -0.6))
             self.cmd_queue.append(CommandSequence(self, cmds))
         if mode == "Gear Right":
             cmds = []
             cmds.append(AutoGearCommand(self, AutoGearCommand.State.up))
-            cmds.append(DistanceDriveCommand(self, 75, 0.6))
+            cmds.append(DistanceDriveCommand(self, 70, 0.6))
             cmds.append(TurnToAngleCommand(self, -55))
             cmds.append(DistanceDriveCommand(self, 40, 0.6))
             cmds.append(AutoGearCommand(self, AutoGearCommand.State.down))
-            cmds.append(DistanceDriveCommand(self, 30, -0.8))
+            cmds.append(DistanceDriveCommand(self, 30, -0.6))
             self.cmd_queue.append(CommandSequence(self, cmds))
-        if mode == "Boiler":
+        if mode == "Hopper/Boiler Blue":
             cmds = []
-            cmds.append(TurnToBoilerCommand(self))
+            cmds.append(DistanceDriveCommand(self, 93.5, 0.6))
+            cmds.append(TurnToAngleCommand(self, 90))
+            cmds.append(TimeDriveCommand(self, 2, 0.6))
+            cmds.append(AutoShooterCommand(self, 10, 3500))
+            cmds.append(AutoFuelTankCommand(self, 10))
             self.cmd_queue.append(CommandSequence(self, cmds))
+        if mode == "Hopper/Boiler Red":
+            cmds = []
+            cmds.append(DistanceDriveCommand(self, 93.5, 0.6))
+            cmds.append(TurnToAngleCommand(self, 90))
+            cmds.append(TimeDriveCommand(self, 2, -0.6))
+            cmds.append(AutoShooterCommand(self, 10, 3500))
+            cmds.append(AutoFuelTankCommand(self, 10))
+            self.cmd_queue.append(CommandSequence(self, cmds))
+        if mode == "Boiler/Mobility Red":
+            cmds = []
+            cmds.append(AutoShooterCommand(self, 10, 3500))
+            cmds.append(AutoFuelTankCommand(self, 10))
+            cmds.append(DistanceDriveCommand(self, 100, -0.6))
+            self.cmd_queue.append(CommandSequence(self, cmds))
+        if mode == "Boiler/Mobility Blue":
+            cmds = []
+            cmds.append(AutoShooterCommand(self, 10, 3500))
+            cmds.append(AutoFuelTankCommand(self, 10))
+            cmds.append(DistanceDriveCommand(self, 100, 0.6))
+            self.cmd_queue.append(CommandSequence(self, cmds))
+
 
         # Init
         while self.isAutonomous():

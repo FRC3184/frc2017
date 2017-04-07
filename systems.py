@@ -106,7 +106,7 @@ class Shooter(Subsystem):
 
         dashboard2.graph("Shooter current", shooter_motor.getOutputCurrent)
 
-        target_rpm = 4100  # ADJUST THIS TO DIAL SHOOTER
+        target_rpm = 4100
         self.controller = control.RPMController(target_rpm, 6322, 0.00023, self.motor.getSpeed, self.motor.set)
         self.controller.start()
         dashboard2.graph("Error", self.controller.error)
@@ -122,6 +122,12 @@ class Shooter(Subsystem):
     def inactive(self):
         self.controller.enabled = False
         self.motor.set(0)
+
+    def set_target_rpm(self, target):
+        self.controller.target_speed = target
+
+    def get_target_rpm(self):
+        return self.controller.target_speed
 
     def default(self):
         self.inactive()

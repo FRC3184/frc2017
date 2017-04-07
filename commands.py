@@ -159,6 +159,7 @@ class OpShooterCommand(Command):
 
     def init(self):
         self.my_robot.shooter.occupy()
+        self.my_robot.shooter.set_target_rpm(3500)
 
     def is_finished(self):
         return not self.my_robot.isOperatorControl()
@@ -174,6 +175,15 @@ class OpShooterCommand(Command):
             self.my_robot.shooter.reverse()
         else:
             self.my_robot.shooter.inactive()
+        pov = gamepad.getPOV(0)
+        if pov == 0:
+            rpm = self.my_robot.shooter.get_target_rpm() + 50
+            self.my_robot.shooter.set_target_rpm(rpm)
+            print("New RPM: {}".format(rpm))
+        if pov == 180:
+            rpm = self.my_robot.shooter.get_target_rpm() - 50
+            self.my_robot.shooter.set_target_rpm(rpm)
+            print("New RPM: {}".format(rpm))
 
 
 class OpClimberCommand(Command):
@@ -271,6 +281,34 @@ class DistanceDriveCommand(Command):
         self.drive.arcadeDrive(self.vbus, -err / 180)
 
 
+class TimeDriveCommand(Command):
+    def __init__(self, my_robot, time, percent_vbus):
+        super().__init__(my_robot)
+        self.drive = my_robot.drive
+        self.vbus = percent_vbus
+        self.time = time
+        self.angle = self.drive.get_heading()
+
+        self.timer = wpilib.Timer()
+
+    def can_run(self):
+        return not self.drive.is_occupied
+
+    def init(self):
+        self.drive.occupy()
+        self.timer.reset()
+
+    def is_finished(self):
+        return self.timer.get() > self.time
+
+    def finish(self):
+        self.drive.release()
+
+    def run_periodic(self):
+        err = self.angle - self.drive.get_heading()
+        self.drive.arcadeDrive(self.vbus, -err / 180)
+
+
 class MotionProfileDriveCommand(Command):
     def __init__(self, my_robot, dist, vel, acc, margin=2):
         super().__init__(my_robot)
@@ -323,11 +361,12 @@ class MotionProfileDriveCommand(Command):
 
 
 class AutoShooterCommand(Command):
-    def __init__(self, my_robot, time):
+    def __init__(self, my_robot, time, rpm):
         super().__init__(my_robot)
         self.shooter = my_robot.shooter
         self.timer = wpilib.Timer()
         self.time = time
+        self.rpm = rpm
 
     def can_run(self):
         return not self.shooter.is_occupied
@@ -336,6 +375,7 @@ class AutoShooterCommand(Command):
         self.shooter.occupy()
         self.timer.reset()
         self.timer.start()
+        self.shooter.set_target_rpm(self.rpm)
 
     def is_finished(self):
         return self.timer.get() > self.time
