@@ -205,7 +205,8 @@ class OpClimberCommand(Command):
     def run_periodic(self):
         gamepad = self.my_robot.gamepad
         if gamepad.getAButton():
-            power = (self.my_robot.gamepad.getY(wpilib.GenericHID.Hand.kRight) + 1) / 2
+            limit = 0.8
+            power = limit * (self.my_robot.gamepad.getY(wpilib.GenericHID.Hand.kRight) + 1) / 2
             self.my_robot.climber.active(power)
         else:
             self.my_robot.climber.inactive()
