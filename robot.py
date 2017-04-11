@@ -161,7 +161,7 @@ class MyRobot(wpilib.SampleRobot):
         if mode == "Gear Left":
             cmds = []
             cmds.append(AutoGearCommand(self, AutoGearCommand.State.up))
-            cmds.append(DistanceDriveCommand(self, 70, 0.6))
+            cmds.append(DistanceDriveCommand(self, 76, 0.6))
             cmds.append(TurnToAngleCommand(self, 55))
             cmds.append(DistanceDriveCommand(self, 40, 0.6))
             cmds.append(AutoGearCommand(self, AutoGearCommand.State.down))
@@ -170,7 +170,7 @@ class MyRobot(wpilib.SampleRobot):
         if mode == "Gear Right":
             cmds = []
             cmds.append(AutoGearCommand(self, AutoGearCommand.State.up))
-            cmds.append(DistanceDriveCommand(self, 70, 0.6))
+            cmds.append(DistanceDriveCommand(self, 76, 0.6))
             cmds.append(TurnToAngleCommand(self, -55))
             cmds.append(DistanceDriveCommand(self, 40, 0.6))
             cmds.append(AutoGearCommand(self, AutoGearCommand.State.down))
@@ -181,7 +181,7 @@ class MyRobot(wpilib.SampleRobot):
             cmds.append(DistanceDriveCommand(self, 93.5, 0.6))
             cmds.append(TurnToAngleCommand(self, 90))
             cmds.append(TimeDriveCommand(self, 2, 0.6))
-            cmds.append(AutoShooterCommand(self, 10, 3500))
+            cmds.append(AutoShooterCommand(self, 10, 3700))
             cmds.append(AutoFuelTankCommand(self, 10))
             self.cmd_queue.append(CommandSequence(self, cmds))
         if mode == "Hopper/Boiler Red":
@@ -189,19 +189,19 @@ class MyRobot(wpilib.SampleRobot):
             cmds.append(DistanceDriveCommand(self, 93.5, 0.6))
             cmds.append(TurnToAngleCommand(self, 90))
             cmds.append(TimeDriveCommand(self, 2, -0.6))
-            cmds.append(AutoShooterCommand(self, 10, 3500))
+            cmds.append(AutoShooterCommand(self, 10, 3700))
             cmds.append(AutoFuelTankCommand(self, 10))
             self.cmd_queue.append(CommandSequence(self, cmds))
         if mode == "Boiler/Mobility Red":
             cmds = []
-            cmds.append(AutoShooterCommand(self, 10, 3500))
-            cmds.append(AutoFuelTankCommand(self, 10))
+            cmds.append(AutoShooterCommand(self, 10, 3650))
+            #cmds.append(AutoFuelTankCommand(self, 10))
             cmds.append(DistanceDriveCommand(self, 100, -0.6))
             self.cmd_queue.append(CommandSequence(self, cmds))
         if mode == "Boiler/Mobility Blue":
             cmds = []
-            cmds.append(AutoShooterCommand(self, 10, 3500))
-            cmds.append(AutoFuelTankCommand(self, 10))
+            cmds.append(AutoShooterCommand(self, 10, 3650))
+            #cmds.append(AutoFuelTankCommand(self, 10))
             cmds.append(DistanceDriveCommand(self, 100, 0.6))
             self.cmd_queue.append(CommandSequence(self, cmds))
 

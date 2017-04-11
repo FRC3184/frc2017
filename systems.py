@@ -29,24 +29,35 @@ class Climber(Subsystem):
 
 
 class FuelTank(Subsystem):
-    def __init__(self, my_robot, intake_motor, blender_motor):
+    def __init__(self, my_robot, intake_motor, blender_motor, override_current=True):
+        """
+        Manages intake and blender
+        :param my_robot:
+        :param intake_motor:
+        :type intake_motor: wpy.motor.PWMMotor
+        :param blender_motor:
+        :type blender_motor: wpy.motor.PWMMotor
+        """
         super().__init__(my_robot)
         self.intake_motor = intake_motor
         self.my_robot = my_robot
-
+        self.override_current = override_current
         self.blender_motor = blender_motor
 
     def intake_active(self):
-        self.intake_motor.set(.5)
+        self.intake_motor.set(.7)
 
     def intake_reverse(self):
-        self.intake_motor.set(-.5)
+        self.intake_motor.set(-.7)
 
     def intake_inactive(self):
         self.intake_motor.set(0)
 
     def blender_active(self):
-        self.blender_motor.set(0.75)
+        if self.blender_motor.get_current() > 5 or self.override_current:
+            self.blender_motor.set(0.75)
+        else:
+            self.blender_motor.set(.3)
 
     def blender_inactive(self):
         self.blender_motor.set(0)

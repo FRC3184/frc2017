@@ -205,7 +205,7 @@ class OpClimberCommand(Command):
     def run_periodic(self):
         gamepad = self.my_robot.gamepad
         if gamepad.getAButton():
-            limit = 0.8
+            limit = 0.7
             power = limit * (self.my_robot.gamepad.getY(wpilib.GenericHID.Hand.kRight) + 1) / 2
             self.my_robot.climber.active(power)
         else:
@@ -368,12 +368,14 @@ class AutoShooterCommand(Command):
         self.timer = wpilib.Timer()
         self.time = time
         self.rpm = rpm
+        self.fueltank = my_robot.fueltank
 
     def can_run(self):
-        return not self.shooter.is_occupied
+        return (not self.shooter.is_occupied) and (not self.fueltank.is_occupied)
 
     def init(self):
         self.shooter.occupy()
+        self.fueltank.occupy()
         self.timer.reset()
         self.timer.start()
         self.shooter.set_target_rpm(self.rpm)
@@ -383,9 +385,13 @@ class AutoShooterCommand(Command):
 
     def finish(self):
         self.shooter.release()
+        self.fueltank.release()
 
     def run_periodic(self):
         self.shooter.active()
+        if self.timer.get() > 1:
+            self.fueltank.blender_active()
+            self.fueltank.intake_active()
 
 
 class AutoFuelTankCommand(Command):
