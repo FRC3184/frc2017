@@ -9,6 +9,7 @@ subscriptions = []
 graphs = {}
 choosers = {}
 indicators = {}
+number_inputs = {}
 chooser_status = {}
 
 extensions = {}
@@ -69,6 +70,8 @@ def gen():
         q.put(ServerSentEvent(json.dumps({"action": "make_indicator", "name": name}), "action"))
     for name, obj in extensions.items():
         q.put(ServerSentEvent(json.dumps({"action": "make_extension", "name": name, "html": obj.html}), "action"))
+    for name, value in number_inputs.items():
+        q.put(ServerSentEvent(json.dumps({"action": "make_input", "name": name, "value": value}), "action"))
 
     subscriptions.append(q)
     try:
@@ -91,6 +94,16 @@ def update_chooser(handler, path, data):
 dashboard_server.method_path("/update_chooser", update_chooser)
 
 
+def update_input(handler, path, data):
+    data = json.loads(data.decode("U8"))
+    opt = data['value']
+    number_inputs[data['name']] = opt
+    print("Received number for {}: {}".format(data['name'], opt))
+    return 200
+
+dashboard_server.method_path("/update_number", update_input)
+
+
 def graph(name, callback):
     graphs[name] = callback
 
@@ -106,6 +119,9 @@ def indicator(name, callback):
 
 def get_chooser(name):
     return chooser_status[name]
+
+def number_input(name, default=0):
+    number_inputs[name] = default
 
 
 def update(time):

@@ -17,6 +17,10 @@ from systems import FuelTank, Shooter, GearLifter, Climber
 
 
 class MyRobot(wpilib.SampleRobot):
+    class State:
+        DISABLED = 0
+        AUTO = 1
+        TELEOP = 2
     def __init__(self):
         super().__init__()
         self.delay_millis = 50
@@ -43,6 +47,8 @@ class MyRobot(wpilib.SampleRobot):
         self.fueltank = None
         self.shooter = None
         self.gear_lifter = None
+
+        self.current_state = MyRobot.State.DISABLED
 
         self.systems = {}
 
@@ -115,6 +121,8 @@ class MyRobot(wpilib.SampleRobot):
         dashboard2.indicator("Left Encoder", lambda: self.talon_left.isSensorPresent(sensor_type) == sensor_present)
         dashboard2.indicator("Right Encoder", lambda: self.talon_right.isSensorPresent(sensor_type) == sensor_present)
 
+        dashboard2.number_input("Drive P", 0)
+
         self.drive = Drivetrain(self.talon_left,
                                 self.talon_right)
         self.drive.setInvertedMotor(Drivetrain.MotorType.kRearRight, True)
@@ -145,70 +153,72 @@ class MyRobot(wpilib.SampleRobot):
         print("Robot ready!")
 
     def autonomous(self):
-        mode = dashboard2.get_chooser("Autonomous")
+        if self.current_state != self.State.AUTO:
+            mode = dashboard2.get_chooser("Autonomous")
 
-        self.talon_left.setPosition(0)
-        self.talon_right.setPosition(0)
+            self.talon_left.setPosition(0)
+            self.talon_right.setPosition(0)
 
-        if mode == "Gear Center":
-            cmds = []
-            cmds.append(AutoGearCommand(self, AutoGearCommand.State.up))
-            cmds.append(DistanceDriveCommand(self, 80, 0.6))
-            cmds.append(AutoGearCommand(self, AutoGearCommand.State.down))
-            cmds.append(DistanceDriveCommand(self, 30, -0.6))
-            self.cmd_queue.append(CommandSequence(self, cmds))
-            # self.cmd_queue.append(MotionProfileDriveCommand(self, -35.29, 1, 1, margin=1))
-        if mode == "Gear Left":
-            cmds = []
-            cmds.append(AutoGearCommand(self, AutoGearCommand.State.up))
-            cmds.append(DistanceDriveCommand(self, 76, 0.6))
-            cmds.append(TurnToAngleCommand(self, 55))
-            cmds.append(DistanceDriveCommand(self, 40, 0.6))
-            cmds.append(AutoGearCommand(self, AutoGearCommand.State.down))
-            cmds.append(DistanceDriveCommand(self, 30, -0.6))
-            self.cmd_queue.append(CommandSequence(self, cmds))
-        if mode == "Gear Right":
-            cmds = []
-            cmds.append(AutoGearCommand(self, AutoGearCommand.State.up))
-            cmds.append(DistanceDriveCommand(self, 76, 0.6))
-            cmds.append(TurnToAngleCommand(self, -55))
-            cmds.append(DistanceDriveCommand(self, 40, 0.6))
-            cmds.append(AutoGearCommand(self, AutoGearCommand.State.down))
-            cmds.append(DistanceDriveCommand(self, 30, -0.6))
-            self.cmd_queue.append(CommandSequence(self, cmds))
-        if mode == "Hopper/Boiler Blue":
-            cmds = []
-            cmds.append(DistanceDriveCommand(self, 93.5, 0.6))
-            cmds.append(TurnToAngleCommand(self, 90))
-            cmds.append(TimeDriveCommand(self, 2, 0.6))
-            cmds.append(AutoShooterCommand(self, 10, 3700))
-            cmds.append(AutoFuelTankCommand(self, 10))
-            self.cmd_queue.append(CommandSequence(self, cmds))
-        if mode == "Hopper/Boiler Red":
-            cmds = []
-            cmds.append(DistanceDriveCommand(self, 93.5, 0.6))
-            cmds.append(TurnToAngleCommand(self, 90))
-            cmds.append(TimeDriveCommand(self, 2, -0.6))
-            cmds.append(AutoShooterCommand(self, 10, 3700))
-            cmds.append(AutoFuelTankCommand(self, 10))
-            self.cmd_queue.append(CommandSequence(self, cmds))
-        if mode == "Boiler/Mobility Red":
-            cmds = []
-            cmds.append(AutoShooterCommand(self, 10, 3650))
-            #cmds.append(AutoFuelTankCommand(self, 10))
-            cmds.append(DistanceDriveCommand(self, 100, -0.6))
-            self.cmd_queue.append(CommandSequence(self, cmds))
-        if mode == "Boiler/Mobility Blue":
-            cmds = []
-            cmds.append(AutoShooterCommand(self, 10, 3650))
-            #cmds.append(AutoFuelTankCommand(self, 10))
-            cmds.append(DistanceDriveCommand(self, 100, 0.6))
-            self.cmd_queue.append(CommandSequence(self, cmds))
+            if mode == "Gear Center":
+                cmds = []
+                cmds.append(AutoGearCommand(self, AutoGearCommand.State.up))
+                cmds.append(DistanceDriveCommand(self, 80, 0.6))
+                cmds.append(AutoGearCommand(self, AutoGearCommand.State.down))
+                cmds.append(DistanceDriveCommand(self, 30, -0.6))
+                self.cmd_queue.append(CommandSequence(self, cmds))
+                # self.cmd_queue.append(MotionProfileDriveCommand(self, -35.29, 1, 1, margin=1))
+            if mode == "Gear Left":
+                cmds = []
+                cmds.append(AutoGearCommand(self, AutoGearCommand.State.up))
+                cmds.append(DistanceDriveCommand(self, 76, 0.6))
+                cmds.append(TurnToAngleCommand(self, 55))
+                cmds.append(DistanceDriveCommand(self, 40, 0.6))
+                cmds.append(AutoGearCommand(self, AutoGearCommand.State.down))
+                cmds.append(DistanceDriveCommand(self, 30, -0.6))
+                self.cmd_queue.append(CommandSequence(self, cmds))
+            if mode == "Gear Right":
+                cmds = []
+                cmds.append(AutoGearCommand(self, AutoGearCommand.State.up))
+                cmds.append(DistanceDriveCommand(self, 76, 0.6))
+                cmds.append(TurnToAngleCommand(self, -55))
+                cmds.append(DistanceDriveCommand(self, 40, 0.6))
+                cmds.append(AutoGearCommand(self, AutoGearCommand.State.down))
+                cmds.append(DistanceDriveCommand(self, 30, -0.6))
+                self.cmd_queue.append(CommandSequence(self, cmds))
+            if mode == "Hopper/Boiler Blue":
+                cmds = []
+                cmds.append(DistanceDriveCommand(self, 93.5, 0.6))
+                cmds.append(TurnToAngleCommand(self, 90))
+                cmds.append(TimeDriveCommand(self, 2, 0.6))
+                cmds.append(AutoShooterCommand(self, 10, 3700))
+                cmds.append(AutoFuelTankCommand(self, 10))
+                self.cmd_queue.append(CommandSequence(self, cmds))
+            if mode == "Hopper/Boiler Red":
+                cmds = []
+                cmds.append(DistanceDriveCommand(self, 93.5, 0.6))
+                cmds.append(TurnToAngleCommand(self, 90))
+                cmds.append(TimeDriveCommand(self, 2, -0.6))
+                cmds.append(AutoShooterCommand(self, 10, 3700))
+                cmds.append(AutoFuelTankCommand(self, 10))
+                self.cmd_queue.append(CommandSequence(self, cmds))
+            if mode == "Boiler/Mobility Red":
+                cmds = []
+                cmds.append(AutoShooterCommand(self, 10, 3650))
+                #cmds.append(AutoFuelTankCommand(self, 10))
+                cmds.append(DistanceDriveCommand(self, 100, -0.6))
+                self.cmd_queue.append(CommandSequence(self, cmds))
+            if mode == "Boiler/Mobility Blue":
+                cmds = []
+                cmds.append(AutoShooterCommand(self, 10, 3650))
+                #cmds.append(AutoFuelTankCommand(self, 10))
+                cmds.append(DistanceDriveCommand(self, 100, 0.6))
+                self.cmd_queue.append(CommandSequence(self, cmds))
 
 
         # Init
         while self.isAutonomous():
             # Loop
+            self.current_state = MyRobot.State.AUTO
 
             self.periodic()
             robot_time.sleep(millis=self.delay_millis)
@@ -220,6 +230,7 @@ class MyRobot(wpilib.SampleRobot):
         # Init
         while self.isDisabled():
             # Loop
+            self.current_state = MyRobot.State.DISABLED
 
             self.periodic()
             robot_time.sleep(millis=self.delay_millis)
@@ -229,14 +240,16 @@ class MyRobot(wpilib.SampleRobot):
 
     def operatorControl(self):
         # Init
-        self.cmd_queue.append(OpDriveCommand(self))
-        self.cmd_queue.append(OpFuelTankCommand(self))
-        self.cmd_queue.append(OpShooterCommand(self))
-        self.cmd_queue.append(OpClimberCommand(self))
-        self.cmd_queue.append(OpGearCommand(self))
+        if self.current_state != self.State.TELEOP:
+            self.cmd_queue.append(OpDriveCommand(self))
+            self.cmd_queue.append(OpFuelTankCommand(self))
+            self.cmd_queue.append(OpShooterCommand(self))
+            self.cmd_queue.append(OpClimberCommand(self))
+            self.cmd_queue.append(OpGearCommand(self))
 
         while self.isOperatorControl():
             # Loop
+            self.current_state = MyRobot.State.TELEOP
 
             self.periodic()
             robot_time.sleep(millis=self.delay_millis)

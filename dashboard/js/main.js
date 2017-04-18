@@ -65,6 +65,11 @@ var make_chooser = function(data) {
     element.appendTo("#dashboard");
     element.wrap($("<div class=\"indicator inactive element-wrap ui-widget-content\" style=\"height:100px;width:100px\" data-name=\"" + data.name + "\"></div>"));
 };
+var make_input = function(data) {
+  var element = $("<input class=\"number-input\" type=\"number\" data-name=\"" + data.name + "\" value=\"" + data.value + "\"/>");
+    element.appendTo("#dashboard");
+    element.wrap($("<div class=\"element-wrap ui-widget-content\" style=\"height:100px;width:100px\" data-name=\"" + data.name + "\"></div>"));
+ };
  var make_extension = function(data) {
     var element = $(data.html);
     element.appendTo("#dashboard");
@@ -120,6 +125,9 @@ source.addEventListener("action", function(event) {
       break;
     case "make_indicator":
       make_indicator(data);
+      break;
+    case "make_input":
+      make_input(data);
       break;
   }
 });
@@ -179,6 +187,10 @@ $(document).ready(function() {
             else {
                 elem.hide();
             }
+        });
+        $(".number-input").change(function(evt) {
+            var datum = {name: $(this).data("name"), value: $(this).val()};
+            $.post("/update_number", JSON.stringify(datum))
         });
 
         console.log("Loading positions...");
