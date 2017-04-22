@@ -79,7 +79,8 @@ class MyRobot(wpilib.SampleRobot):
         dashboard2.run()
         wpilib.CameraServer.launch()
 
-        dashboard2.chooser("Autonomous", ["None", "Gear Center", "Gear Left", "Gear Right", "Hopper/Boiler Blue",
+        dashboard2.chooser("Autonomous", ["None", "Drive MotionMagic",
+                                          "Gear Center", "Gear Left", "Gear Right", "Hopper/Boiler Blue",
                                           "Hopper/Boiler Red", "Boiler/Mobility Blue", "Boiler/Mobility Red"],
                            default="None")
 
@@ -121,8 +122,6 @@ class MyRobot(wpilib.SampleRobot):
         dashboard2.indicator("Left Encoder", lambda: self.talon_left.isSensorPresent(sensor_type) == sensor_present)
         dashboard2.indicator("Right Encoder", lambda: self.talon_right.isSensorPresent(sensor_type) == sensor_present)
 
-        dashboard2.number_input("Drive P", 0)
-
         self.drive = Drivetrain(self.talon_left,
                                 self.talon_right)
         self.drive.setInvertedMotor(Drivetrain.MotorType.kRearRight, True)
@@ -130,6 +129,13 @@ class MyRobot(wpilib.SampleRobot):
         self.shooter = Shooter(self, self.talon_shooter)
         self.climber = Climber(self, self.talon_climber)
         self.gear_lifter = GearLifter(self)
+
+        dashboard2.number_input("Drive P L", 0.007)
+        dashboard2.number_input("Drive P R", 0.007)
+        dashboard2.number_input("Drive Vel", 10)
+        dashboard2.number_input("Drive Acc", 5)
+        dashboard2.number_input("Drive F", 0.164)
+        dashboard2.number_input("Drive Dist", 10)
 
         self.systems = {"drive": self.drive,
                         "climber": self.climber,
@@ -150,6 +156,7 @@ class MyRobot(wpilib.SampleRobot):
             # Wait until either vision is ready or 30s has passed
             while not _vision_table.getBoolean("ready", False) and not (time.time() - t_begin) > t_wait:
                 robot_time.sleep(seconds=1)
+                break
         print("Robot ready!")
 
     def autonomous(self):
@@ -158,7 +165,21 @@ class MyRobot(wpilib.SampleRobot):
 
             self.talon_left.setPosition(0)
             self.talon_right.setPosition(0)
+            p_r = float(dashboard2.number_inputs["Drive P R"])
+            p_l = float(dashboard2.number_inputs["Drive P L"])
+            f = float(dashboard2.number_inputs["Drive F"])
+            vel = float(dashboard2.number_inputs["Drive Vel"])
+            acc = float(dashboard2.number_inputs["Drive Acc"])
+            dist = float(dashboard2.number_inputs["Drive Dist"])
+            self.talon_left.setP(p_l)
+            self.talon_left.setF(f)
+            self.talon_right.setP(p_r)
+            self.talon_right.setF(f)
 
+            if mode == "Drive MotionMagic":
+                cmds = []
+                cmds.append(MotionProfileDriveCommand(self, dist, vel, acc))
+                self.cmd_queue.append(CommandSequence(self, cmds))
             if mode == "Gear Center":
                 cmds = []
                 cmds.append(AutoGearCommand(self, AutoGearCommand.State.up))

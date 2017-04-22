@@ -311,15 +311,15 @@ class TimeDriveCommand(Command):
 
 
 class MotionProfileDriveCommand(Command):
-    def __init__(self, my_robot, dist, vel, acc, margin=2):
+    def __init__(self, my_robot, dist, vel, acc, margin=1/12):
         super().__init__(my_robot)
         self.drive = my_robot.drive
         self.dist = dist
-        self.vel = vel
-        self.acc = acc
+        self.vel = vel  # ft/s
+        self.acc = acc  # ft/s^2
         self.margin = margin
 
-        self.scale_factor = (math.pi * self.drive.wheel_diameter / 12)
+        self.scale_factor = math.pi * self.drive.wheel_diameter / 12  # ft/rev
 
     def can_run(self):
         return not self.drive.is_occupied
@@ -328,8 +328,10 @@ class MotionProfileDriveCommand(Command):
         self.drive.occupy()
         self.my_robot.drive.setSafetyEnabled(enabled=False)
 
-        vel_rpm = (self.vel / self.scale_factor) / 60
-        acc_rpm = (self.acc / self.scale_factor) / 60 ** 2
+        vel_rpm = (self.vel / self.scale_factor) * 60  # RPM
+        acc_rpm = (self.acc / self.scale_factor) * 60  # RPM/sec
+        print("RPM: {}".format(vel_rpm))
+        print("RPM/s: {}".format(acc_rpm))
         self.my_robot.talon_left.setMotionMagicCruiseVelocity(vel_rpm)
         self.my_robot.talon_right.setMotionMagicCruiseVelocity(vel_rpm)
         self.my_robot.talon_left.setMotionMagicAcceleration(acc_rpm)
@@ -344,8 +346,8 @@ class MotionProfileDriveCommand(Command):
         self.my_robot.talon_right.set(dist_revs)
 
     def is_finished(self):
-        left_on = self.my_robot.talon_left.getClosedLoopError() / self.scale_factor < self.margin
-        right_on = self.my_robot.talon_right.getClosedLoopError() / self.scale_factor < self.margin
+        left_on = self.my_robot.talon_left.getClosedLoopError() * self.scale_factor < self.margin
+        right_on = self.my_robot.talon_right.getClosedLoopError() * self.scale_factor < self.margin
         return False  # left_on and right_on
 
     def finish(self):
@@ -359,6 +361,8 @@ class MotionProfileDriveCommand(Command):
         dist_revs = self.dist / self.scale_factor
         self.my_robot.talon_left.set(dist_revs)
         self.my_robot.talon_right.set(dist_revs)
+        print("Err L: {}".format(self.my_robot.talon_left.getClosedLoopError()))
+        print("Err R: {}".format(self.my_robot.talon_right.getClosedLoopError()))
 
 
 class AutoShooterCommand(Command):

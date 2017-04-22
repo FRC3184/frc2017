@@ -69,6 +69,7 @@ var make_input = function(data) {
   var element = $("<input class=\"number-input\" type=\"number\" data-name=\"" + data.name + "\" value=\"" + data.value + "\"/>");
     element.appendTo("#dashboard");
     element.wrap($("<div class=\"element-wrap ui-widget-content\" style=\"height:100px;width:100px\" data-name=\"" + data.name + "\"></div>"));
+    element.after("<label>" + data.name + "</label>")
  };
  var make_extension = function(data) {
     var element = $(data.html);
