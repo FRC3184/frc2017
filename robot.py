@@ -106,7 +106,7 @@ class MyRobot(wpilib.SampleRobot):
 
         self.talon_left.setFeedbackDevice(ctre.CANTalon.FeedbackDevice.CtreMagEncoder_Relative)
         self.talon_right.setFeedbackDevice(ctre.CANTalon.FeedbackDevice.CtreMagEncoder_Relative)
-        self.talon_right.reverseSensor(True)
+        self.talon_left.reverseSensor(True)
         kF = 1023 / 5676
         kP = 0
         self.talon_left.setF(kF)
@@ -130,11 +130,8 @@ class MyRobot(wpilib.SampleRobot):
         self.climber = Climber(self, self.talon_climber)
         self.gear_lifter = GearLifter(self)
 
-        dashboard2.number_input("Drive P L", 0.007)
-        dashboard2.number_input("Drive P R", 0.007)
         dashboard2.number_input("Drive Vel", 10)
         dashboard2.number_input("Drive Acc", 5)
-        dashboard2.number_input("Drive F", 0.164)
         dashboard2.number_input("Drive Dist", 10)
 
         self.systems = {"drive": self.drive,
@@ -165,16 +162,28 @@ class MyRobot(wpilib.SampleRobot):
 
             self.talon_left.setPosition(0)
             self.talon_right.setPosition(0)
-            p_r = float(dashboard2.number_inputs["Drive P R"])
-            p_l = float(dashboard2.number_inputs["Drive P L"])
-            f = float(dashboard2.number_inputs["Drive F"])
             vel = float(dashboard2.number_inputs["Drive Vel"])
             acc = float(dashboard2.number_inputs["Drive Acc"])
             dist = float(dashboard2.number_inputs["Drive Dist"])
+            f_l = 0.1808
+            p_l = 0.64
+            i_l = 0.005
+            d_l = 12.8
+
+            f_r = 0.1724
+            p_r = 0.64
+            i_r = 0.001
+            d_r = 12.8
+
             self.talon_left.setP(p_l)
-            self.talon_left.setF(f)
+            self.talon_left.setI(i_l)
+            self.talon_left.setD(d_l)
+            self.talon_left.setF(f_l)
+
             self.talon_right.setP(p_r)
-            self.talon_right.setF(f)
+            self.talon_right.setI(i_r)
+            self.talon_right.setD(d_r)
+            self.talon_right.setF(f_r)
 
             if mode == "Drive MotionMagic":
                 cmds = []

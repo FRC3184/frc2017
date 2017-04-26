@@ -359,10 +359,8 @@ class MotionProfileDriveCommand(Command):
 
     def run_periodic(self):
         dist_revs = self.dist / self.scale_factor
-        self.my_robot.talon_left.set(dist_revs)
-        self.my_robot.talon_right.set(dist_revs)
-        print("Err L: {}".format(self.my_robot.talon_left.getClosedLoopError()))
-        print("Err R: {}".format(self.my_robot.talon_right.getClosedLoopError()))
+        print("Err L: {}".format(self.my_robot.talon_left.getPosition() - dist_revs))
+        print("Err R: {}".format(self.my_robot.talon_right.getPosition() - dist_revs))
 
 
 class AutoShooterCommand(Command):
