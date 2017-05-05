@@ -159,7 +159,7 @@ class OpShooterCommand(Command):
 
     def init(self):
         self.my_robot.shooter.occupy()
-        self.my_robot.shooter.set_target_rpm(3500)
+        self.my_robot.shooter.set_target_rpm(3850)
 
     def is_finished(self):
         return not self.my_robot.isOperatorControl()
@@ -346,9 +346,10 @@ class MotionProfileDriveCommand(Command):
         self.my_robot.talon_right.set(dist_revs)
 
     def is_finished(self):
-        left_on = self.my_robot.talon_left.getClosedLoopError() * self.scale_factor < self.margin
-        right_on = self.my_robot.talon_right.getClosedLoopError() * self.scale_factor < self.margin
-        return False  # left_on and right_on
+        dist_revs = self.dist / self.scale_factor
+        left_err = self.my_robot.talon_left.getPosition() - dist_revs
+        right_err = self.my_robot.talon_right.getPosition() - dist_revs
+        return abs(left_err) < 0.001 and abs(right_err) < 0.001
 
     def finish(self):
         self.drive.release()
@@ -358,9 +359,7 @@ class MotionProfileDriveCommand(Command):
         print("Finished motion profile")
 
     def run_periodic(self):
-        dist_revs = self.dist / self.scale_factor
-        print("Err L: {}".format(self.my_robot.talon_left.getPosition() - dist_revs))
-        print("Err R: {}".format(self.my_robot.talon_right.getPosition() - dist_revs))
+        pass
 
 
 class AutoShooterCommand(Command):
@@ -456,15 +455,16 @@ class TurnToBoilerCommand(Command):
                 self.my_robot.drive.arcadeDrive(0, 0.5)
 
         elif self.state == 1:
-            self.result = self.my_robot.drive.turn_to_angle(self.angle, allowable_error=1.5)
-            # self.state = 2
+            if self.my_robot.drive.turn_to_angle(self.angle, allowable_error=1):
+                self.state = 2
+                wpilib.Timer.delay(5/10)
         elif self.state == 2:
             self.angle = self.vision_table.getNumber("angle")
             if abs(self.angle) < 1:
                 self.result = True
             else:
                 self.state = 1
-                self.angle = self.vision_table.getNumber("angle") * 0.5
+                self.angle = self.vision_table.getNumber("angle") * 0.5 + 1 / 4
                 self.my_robot.drive.ahrs.reset()
 
 

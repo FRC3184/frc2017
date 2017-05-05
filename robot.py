@@ -79,7 +79,7 @@ class MyRobot(wpilib.SampleRobot):
         dashboard2.run()
         wpilib.CameraServer.launch()
 
-        dashboard2.chooser("Autonomous", ["None", "Drive MotionMagic",
+        dashboard2.chooser("Autonomous", ["None", "Drive MotionMagic", "Align Shoot",
                                           "Gear Center", "Gear Left", "Gear Right", "Hopper/Boiler Blue",
                                           "Hopper/Boiler Red", "Boiler/Mobility Blue", "Boiler/Mobility Red"],
                            default="None")
@@ -130,8 +130,8 @@ class MyRobot(wpilib.SampleRobot):
         self.climber = Climber(self, self.talon_climber)
         self.gear_lifter = GearLifter(self)
 
-        dashboard2.number_input("Drive Vel", 10)
-        dashboard2.number_input("Drive Acc", 5)
+        dashboard2.number_input("Drive Vel", 0.01)
+        dashboard2.number_input("Drive Acc", 0.001)
         dashboard2.number_input("Drive Dist", 10)
 
         self.systems = {"drive": self.drive,
@@ -153,7 +153,6 @@ class MyRobot(wpilib.SampleRobot):
             # Wait until either vision is ready or 30s has passed
             while not _vision_table.getBoolean("ready", False) and not (time.time() - t_begin) > t_wait:
                 robot_time.sleep(seconds=1)
-                break
         print("Robot ready!")
 
     def autonomous(self):
@@ -185,35 +184,54 @@ class MyRobot(wpilib.SampleRobot):
             self.talon_right.setD(d_r)
             self.talon_right.setF(f_r)
 
+            drive_vel = 0.01
+            drive_acc = 0.01
+
+            def gear_side(is_right=True):
+                cmds = []
+                cmds.append(AutoGearCommand(self, AutoGearCommand.State.up))
+                cmds.append(MotionProfileDriveCommand(self, 76 / 12, drive_vel, drive_acc))
+                cmds.append(TurnToAngleCommand(self, (-1 if is_right else 1) * 55))
+                cmds.append(MotionProfileDriveCommand(self, 40 / 12, drive_vel, drive_acc))
+                cmds.append(AutoGearCommand(self, AutoGearCommand.State.down))
+                cmds.append(MotionProfileDriveCommand(self, -30 / 12, drive_vel, drive_acc))
+                return cmds
+
+            def align_shoot(is_right=True):
+                cmds = []
+                cmds.append(TurnToAngleCommand(self, (1 if is_right else -1) * 90))
+                cmds.append(TurnToBoilerCommand(self))
+                cmds.append(AutoShooterCommand(self, 10, 3850))
+                return cmds
+
             if mode == "Drive MotionMagic":
                 cmds = []
                 cmds.append(MotionProfileDriveCommand(self, dist, vel, acc))
                 self.cmd_queue.append(CommandSequence(self, cmds))
+            if mode == "Align Shoot":
+                cmds = []
+                cmds += align_shoot(True)
+                self.cmd_queue.append(CommandSequence(self, cmds))
             if mode == "Gear Center":
                 cmds = []
                 cmds.append(AutoGearCommand(self, AutoGearCommand.State.up))
-                cmds.append(DistanceDriveCommand(self, 80, 0.6))
+                cmds.append(MotionProfileDriveCommand(self, 80 / 12, drive_vel, drive_acc))
                 cmds.append(AutoGearCommand(self, AutoGearCommand.State.down))
-                cmds.append(DistanceDriveCommand(self, 30, -0.6))
+                cmds.append(MotionProfileDriveCommand(self, -80 / 12, drive_vel, drive_acc))
                 self.cmd_queue.append(CommandSequence(self, cmds))
-                # self.cmd_queue.append(MotionProfileDriveCommand(self, -35.29, 1, 1, margin=1))
             if mode == "Gear Left":
-                cmds = []
-                cmds.append(AutoGearCommand(self, AutoGearCommand.State.up))
-                cmds.append(DistanceDriveCommand(self, 76, 0.6))
-                cmds.append(TurnToAngleCommand(self, 55))
-                cmds.append(DistanceDriveCommand(self, 40, 0.6))
-                cmds.append(AutoGearCommand(self, AutoGearCommand.State.down))
-                cmds.append(DistanceDriveCommand(self, 30, -0.6))
+                cmds = gear_side(False)
                 self.cmd_queue.append(CommandSequence(self, cmds))
             if mode == "Gear Right":
-                cmds = []
-                cmds.append(AutoGearCommand(self, AutoGearCommand.State.up))
-                cmds.append(DistanceDriveCommand(self, 76, 0.6))
-                cmds.append(TurnToAngleCommand(self, -55))
-                cmds.append(DistanceDriveCommand(self, 40, 0.6))
-                cmds.append(AutoGearCommand(self, AutoGearCommand.State.down))
-                cmds.append(DistanceDriveCommand(self, 30, -0.6))
+                cmds = gear_side(True)
+                self.cmd_queue.append(CommandSequence(self, cmds))
+            if mode == "Gear Left + Shoot":
+                cmds = gear_side(False)
+                cmds += align_shoot(False)
+                self.cmd_queue.append(CommandSequence(self, cmds))
+            if mode == "Gear Right + Shoot":
+                cmds = gear_side(True)
+                cmds += align_shoot(True)
                 self.cmd_queue.append(CommandSequence(self, cmds))
             if mode == "Hopper/Boiler Blue":
                 cmds = []
