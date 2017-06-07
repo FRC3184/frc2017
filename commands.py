@@ -328,6 +328,9 @@ class MotionProfileDriveCommand(Command):
         self.drive.occupy()
         self.my_robot.drive.setSafetyEnabled(enabled=False)
 
+        self.my_robot.talon_left.setPosition(0)
+        self.my_robot.talon_right.setPosition(0)
+
         vel_rpm = (self.vel / self.scale_factor) * 60  # RPM
         acc_rpm = (self.acc / self.scale_factor) * 60  # RPM/sec
         print("RPM: {}".format(vel_rpm))
@@ -349,7 +352,8 @@ class MotionProfileDriveCommand(Command):
         dist_revs = self.dist / self.scale_factor
         left_err = self.my_robot.talon_left.getPosition() - dist_revs
         right_err = self.my_robot.talon_right.getPosition() - dist_revs
-        return abs(left_err) < 0.001 and abs(right_err) < 0.001
+        margin = 0.004
+        return abs(left_err) < 0.004 and abs(right_err) < 0.004
 
     def finish(self):
         self.drive.release()

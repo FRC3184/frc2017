@@ -165,13 +165,13 @@ class MyRobot(wpilib.SampleRobot):
             acc = float(dashboard2.number_inputs["Drive Acc"])
             dist = float(dashboard2.number_inputs["Drive Dist"])
             f_l = 0.1808
-            p_l = 0.64
+            p_l = 1.28
             i_l = 0.005
             d_l = 12.8
 
             f_r = 0.1724
-            p_r = 0.64
-            i_r = 0.001
+            p_r = 1.28
+            i_r = 0.005
             d_r = 12.8
 
             self.talon_left.setP(p_l)
@@ -184,24 +184,24 @@ class MyRobot(wpilib.SampleRobot):
             self.talon_right.setD(d_r)
             self.talon_right.setF(f_r)
 
-            drive_vel = 0.01
+            drive_vel = 0.02
             drive_acc = 0.01
 
             def gear_side(is_right=True):
                 cmds = []
                 cmds.append(AutoGearCommand(self, AutoGearCommand.State.up))
-                cmds.append(MotionProfileDriveCommand(self, 76 / 12, drive_vel, drive_acc))
-                cmds.append(TurnToAngleCommand(self, (-1 if is_right else 1) * 55))
-                cmds.append(MotionProfileDriveCommand(self, 40 / 12, drive_vel, drive_acc))
+                cmds.append(MotionProfileDriveCommand(self, (108 - 15.5 - 10 + 5) / 12, drive_vel, drive_acc))
+                cmds.append(TurnToAngleCommand(self, (-1 if is_right else 1) * 53))
+                cmds.append(MotionProfileDriveCommand(self, (44 - 4 - 5) / 12, drive_vel, drive_acc))
                 cmds.append(AutoGearCommand(self, AutoGearCommand.State.down))
                 cmds.append(MotionProfileDriveCommand(self, -30 / 12, drive_vel, drive_acc))
                 return cmds
-
+            
             def align_shoot(is_right=True):
                 cmds = []
                 cmds.append(TurnToAngleCommand(self, (1 if is_right else -1) * 90))
                 cmds.append(TurnToBoilerCommand(self))
-                cmds.append(AutoShooterCommand(self, 10, 3850))
+                cmds.append(AutoShooterCommand(self, 10, 3750))
                 return cmds
 
             if mode == "Drive MotionMagic":
@@ -215,9 +215,9 @@ class MyRobot(wpilib.SampleRobot):
             if mode == "Gear Center":
                 cmds = []
                 cmds.append(AutoGearCommand(self, AutoGearCommand.State.up))
-                cmds.append(MotionProfileDriveCommand(self, 80 / 12, drive_vel, drive_acc))
+                cmds.append(MotionProfileDriveCommand(self, (110 - 15.5 - 4 - 10) / 12, drive_vel, drive_acc))
                 cmds.append(AutoGearCommand(self, AutoGearCommand.State.down))
-                cmds.append(MotionProfileDriveCommand(self, -80 / 12, drive_vel, drive_acc))
+                cmds.append(MotionProfileDriveCommand(self, -40 / 12, drive_vel, drive_acc))
                 self.cmd_queue.append(CommandSequence(self, cmds))
             if mode == "Gear Left":
                 cmds = gear_side(False)
