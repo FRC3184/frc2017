@@ -21,6 +21,7 @@ class MyRobot(wpilib.SampleRobot):
         DISABLED = 0
         AUTO = 1
         TELEOP = 2
+
     def __init__(self):
         super().__init__()
         self.delay_millis = 50
@@ -107,15 +108,32 @@ class MyRobot(wpilib.SampleRobot):
         self.talon_left.setFeedbackDevice(ctre.CANTalon.FeedbackDevice.CtreMagEncoder_Relative)
         self.talon_right.setFeedbackDevice(ctre.CANTalon.FeedbackDevice.CtreMagEncoder_Relative)
         self.talon_left.reverseSensor(True)
-        kF = 1023 / 5676
-        kP = 0
-        self.talon_left.setF(kF)
-        self.talon_left.setP(kP)
-        self.talon_right.setF(kF)
-        self.talon_right.setP(kP)
+        f_l = 0.1808
+        p_l = 1.28
+        i_l = 0.005
+        d_l = 12.8
+
+        f_r = 0.1724
+        p_r = 1.28
+        i_r = 0.005
+        d_r = 12.8
+
+        self.talon_left.setP(p_l)
+        self.talon_left.setI(i_l)
+        self.talon_left.setD(d_l)
+        self.talon_left.setF(f_l)
+
+        self.talon_right.setP(p_r)
+        self.talon_right.setI(i_r)
+        self.talon_right.setD(d_r)
+        self.talon_right.setF(f_r)
+
+        self.talon_left.setCloseLoopRampRate(2)
+        self.talon_right.setCloseLoopRampRate(2)
 
         dashboard2.graph("Blender Current", self.victor_blender.get_current)
         dashboard2.graph("Climber Current", self.talon_climber.get_current)
+        dashboard2.graph("Drive Current", self.talon_left.getOutputCurrent)
 
         sensor_type = ctre.CANTalon.FeedbackDevice.CtreMagEncoder_Relative
         sensor_present = ctre.CANTalon.FeedbackDeviceStatus.Present
@@ -164,25 +182,7 @@ class MyRobot(wpilib.SampleRobot):
             vel = float(dashboard2.number_inputs["Drive Vel"])
             acc = float(dashboard2.number_inputs["Drive Acc"])
             dist = float(dashboard2.number_inputs["Drive Dist"])
-            f_l = 0.1808
-            p_l = 1.28
-            i_l = 0.005
-            d_l = 12.8
 
-            f_r = 0.1724
-            p_r = 1.28
-            i_r = 0.005
-            d_r = 12.8
-
-            self.talon_left.setP(p_l)
-            self.talon_left.setI(i_l)
-            self.talon_left.setD(d_l)
-            self.talon_left.setF(f_l)
-
-            self.talon_right.setP(p_r)
-            self.talon_right.setI(i_r)
-            self.talon_right.setD(d_r)
-            self.talon_right.setF(f_r)
 
             drive_vel = 0.02
             drive_acc = 0.01
@@ -190,7 +190,8 @@ class MyRobot(wpilib.SampleRobot):
             def gear_side(is_right=True):
                 cmds = []
                 cmds.append(AutoGearCommand(self, AutoGearCommand.State.up))
-                cmds.append(MotionProfileDriveCommand(self, (108 - 15.5 - 10 + 5) / 12, drive_vel, drive_acc))
+                cmds.append(MotionProfileDriveCommand(self, (108 - 15.5 - 10 + 5 + (0 if is_right else 5)) / 12,
+                                                      drive_vel, drive_acc))
                 cmds.append(TurnToAngleCommand(self, (-1 if is_right else 1) * 53))
                 cmds.append(MotionProfileDriveCommand(self, (44 - 4 - 5) / 12, drive_vel, drive_acc))
                 cmds.append(AutoGearCommand(self, AutoGearCommand.State.down))

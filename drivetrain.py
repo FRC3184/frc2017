@@ -19,7 +19,7 @@ class Drivetrain(wpilib.RobotDrive, Subsystem):
         if "max_radius" in kwargs.keys():
             self.max_turn_radius = kwargs['max_radius']
         else:
-            self.max_turn_radius = 10
+            self.max_turn_radius = 2
 
         if "wheel_diameter" in kwargs.keys():
             self.wheel_diameter = kwargs['wheel_diameter']
@@ -32,24 +32,26 @@ class Drivetrain(wpilib.RobotDrive, Subsystem):
 
     def radius_turn(self, pow, radius):
         D = self.robot_width / 2
+        turn_dir = mathutils.sgn(radius)
+        radius = abs(radius)
         Vo = pow
         Vi = Vo * (radius - D) / (radius + D)
 
-        if radius > 0:
+        if turn_dir > 0:
             self.setLeftRightMotorOutputs(Vo, Vi)
         else:
             self.setLeftRightMotorOutputs(Vi, Vo)
 
-    def radius_drive(self, forward_power, turn_power):
+    def radius_drive(self, forward_power, turn_power, power_factor):
         if abs(turn_power) < 0.05:
-            self.setLeftRightMotorOutputs(forward_power, forward_power)
+            self.setLeftRightMotorOutputs(forward_power * power_factor, forward_power * power_factor)
             return
         if abs(forward_power) < 0.05:
-            self.setLeftRightMotorOutputs(turn_power, -turn_power)
+            self.setLeftRightMotorOutputs(turn_power * power_factor, -turn_power * power_factor)
             return
-        turn_power = turn_power**1/3
+        # turn_power **= (1/3)
         radius = self.max_turn_radius * (1 - abs(turn_power))
-        self.radius_turn(forward_power, radius * mathutils.sgn(turn_power))
+        self.radius_turn(forward_power * power_factor, radius * mathutils.sgn(turn_power) * mathutils.sgn(forward_power))
 
     def turn_to_angle(self, angle, allowable_error=2):
         err = angle - self.get_heading()
@@ -64,6 +66,27 @@ class Drivetrain(wpilib.RobotDrive, Subsystem):
             p = mathutils.sgn(p)
         self.arcadeDrive(0, -p)
         return False
+
+    def arcade_velocity(self, move, rotate):
+        if move > 0.0:
+            if rotate > 0.0:
+                leftMotorSpeed = move - rotate
+                rightMotorSpeed = max(move, rotate)
+            else:
+                leftMotorSpeed = max(move, -rotate)
+                rightMotorSpeed = move + rotate
+        else:
+            if rotate > 0.0:
+                leftMotorSpeed = -max(-move, rotate)
+                rightMotorSpeed = move + rotate
+            else:
+                leftMotorSpeed = move - rotate
+                rightMotorSpeed = -max(-move, -rotate)
+        maxSpeed = 13  # fps
+        ratio = ((maxSpeed / 60) * 12) / (4 * math.pi)  # max speed in rpm
+        leftMotorSpeed *= ratio
+        rightMotorSpeed *= ratio
+        self.setLeftRightMotorOutputs(leftMotorSpeed, rightMotorSpeed)
 
     def get_heading(self):
         return self.ahrs.getYaw()

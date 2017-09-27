@@ -221,12 +221,18 @@ class OpDriveCommand(Command):
         return not self.my_robot.drive.is_occupied
 
     def init(self):
+        # self.my_robot.talon_left.setControlMode(ctre.CANTalon.ControlMode.Speed)
+        # self.my_robot.talon_right.setControlMode(ctre.CANTalon.ControlMode.Speed)
+        self.my_robot.talon_left.setControlMode(ctre.CANTalon.ControlMode.PercentVbus)
+        self.my_robot.talon_right.setControlMode(ctre.CANTalon.ControlMode.PercentVbus)
         self.my_robot.drive.occupy()
 
     def is_finished(self):
         return not self.my_robot.isOperatorControl() or self.manually_finish
 
     def finish(self):
+        self.my_robot.talon_left.setControlMode(ctre.CANTalon.ControlMode.PercentVbus)
+        self.my_robot.talon_right.setControlMode(ctre.CANTalon.ControlMode.PercentVbus)
         self.my_robot.drive.release()
         self.manually_finish = False
 
@@ -242,7 +248,7 @@ class OpDriveCommand(Command):
         if js_left.getRawButton(tank_button) or js_right.getRawButton(tank_button):
             self.my_robot.drive.tankDrive(-spenner * js_left.getY(), -spenner * js_right.getY())
         else:
-            self.my_robot.drive.arcadeDrive(-spenner * js_left.getY(), -spenner * js_right.getX())
+            self.my_robot.drive.radius_drive(-js_left.getY(), js_right.getX(), spenner)
 
 
 class DistanceDriveCommand(Command):
