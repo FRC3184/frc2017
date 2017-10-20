@@ -249,14 +249,14 @@ class OpDriveCommand(Command):
         qt_button = 2
         if js_left.getRawButton(spenner_button) or js_right.getRawButton(spenner_button):
             spenner = 0.7
+
         if js_left.getRawButton(tank_button) or js_right.getRawButton(tank_button):
             self.my_robot.drive.tankDrive(-spenner * js_left.getY(), -spenner * js_right.getY())
         elif js_left.getRawButton(qt_button) or js_right.getRawButton(qt_button):
             self.my_robot.drive.arcadeDrive(0, -js_right.getX())
         else:
-            self.my_robot.drive.radius_drive(-mathutils.valpow(js_left.getY(), 2), mathutils.valpow(js_right.getX(), 2),
+            self.my_robot.drive.radius_drive(-mathutils.signed_power(js_left.getY(), 2), mathutils.signed_power(js_right.getX(), 2),
                                              spenner, velocity=self.velocity)
-            # self.my_robot.drive.arcadeDrive(-js_left.getY(), -js_right.getX())
 
 
 class DistanceDriveCommand(Command):

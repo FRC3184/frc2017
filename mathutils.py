@@ -18,11 +18,6 @@ def angle_difference(theta1, theta2):
     return normalize_angle(theta1 - theta2)
 
 
-def valroot(x, root):
-    s = sgn(x)
-    return s * abs(x)**(1/root)
-
-
-def valpow(x, pow):
+def signed_power(x, pow):
     s = sgn(x)
     return s * abs(x)**pow
