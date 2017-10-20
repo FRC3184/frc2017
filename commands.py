@@ -216,15 +216,18 @@ class OpDriveCommand(Command):
     def __init__(self, my_robot):
         super().__init__(my_robot)
         self.manually_finish = False
+        self.velocity = False
 
     def can_run(self):
         return not self.my_robot.drive.is_occupied
 
     def init(self):
-        # self.my_robot.talon_left.setControlMode(ctre.CANTalon.ControlMode.Speed)
-        # self.my_robot.talon_right.setControlMode(ctre.CANTalon.ControlMode.Speed)
-        self.my_robot.talon_left.setControlMode(ctre.CANTalon.ControlMode.PercentVbus)
-        self.my_robot.talon_right.setControlMode(ctre.CANTalon.ControlMode.PercentVbus)
+        if self.velocity:
+            self.my_robot.talon_left.setControlMode(ctre.CANTalon.ControlMode.Speed)
+            self.my_robot.talon_right.setControlMode(ctre.CANTalon.ControlMode.Speed)
+        else:
+            self.my_robot.talon_left.setControlMode(ctre.CANTalon.ControlMode.PercentVbus)
+            self.my_robot.talon_right.setControlMode(ctre.CANTalon.ControlMode.PercentVbus)
         self.my_robot.drive.occupy()
 
     def is_finished(self):
@@ -240,15 +243,20 @@ class OpDriveCommand(Command):
 
         js_left = self.my_robot.js_left
         js_right = self.my_robot.js_right
-        spenner = 0.7
+        spenner = 1
         spenner_button = 1
         tank_button = 3
+        qt_button = 2
         if js_left.getRawButton(spenner_button) or js_right.getRawButton(spenner_button):
-            spenner = 1
+            spenner = 0.7
         if js_left.getRawButton(tank_button) or js_right.getRawButton(tank_button):
             self.my_robot.drive.tankDrive(-spenner * js_left.getY(), -spenner * js_right.getY())
+        elif js_left.getRawButton(qt_button) or js_right.getRawButton(qt_button):
+            self.my_robot.drive.arcadeDrive(0, -js_right.getX())
         else:
-            self.my_robot.drive.radius_drive(-js_left.getY(), js_right.getX(), spenner)
+            self.my_robot.drive.radius_drive(-mathutils.valpow(js_left.getY(), 2), mathutils.valpow(js_right.getX(), 2),
+                                             spenner, velocity=self.velocity)
+            # self.my_robot.drive.arcadeDrive(-js_left.getY(), -js_right.getX())
 
 
 class DistanceDriveCommand(Command):

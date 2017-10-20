@@ -128,8 +128,10 @@ class MyRobot(wpilib.SampleRobot):
         self.talon_right.setD(d_r)
         self.talon_right.setF(f_r)
 
-        self.talon_left.setCloseLoopRampRate(2)
-        self.talon_right.setCloseLoopRampRate(2)
+        volt_ramp_time = 1/3
+        volt_ramp = 12 / volt_ramp_time
+        # self.talon_left.setVoltageRampRate(volt_ramp)
+        # self.talon_right.setVoltageRampRate(volt_ramp)
 
         dashboard2.graph("Blender Current", self.victor_blender.get_current)
         dashboard2.graph("Climber Current", self.talon_climber.get_current)

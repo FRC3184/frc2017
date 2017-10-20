@@ -19,18 +19,22 @@ class Drivetrain(wpilib.RobotDrive, Subsystem):
         if "max_radius" in kwargs.keys():
             self.max_turn_radius = kwargs['max_radius']
         else:
-            self.max_turn_radius = 2
+            self.max_turn_radius = 10
 
         if "wheel_diameter" in kwargs.keys():
             self.wheel_diameter = kwargs['wheel_diameter']
         else:
             self.wheel_diameter = 4
+        if "max_speed" in kwargs.keys():
+            self.max_speed = kwargs['max_speed']
+        else:
+            self.max_speed = 13
 
         self.ahrs = AHRS.create_i2c()
 
         dashboard2.graph("Heading", lambda: self.get_heading())
 
-    def radius_turn(self, pow, radius):
+    def radius_turn(self, pow, radius, velocity=False):
         D = self.robot_width / 2
         turn_dir = mathutils.sgn(radius)
         radius = abs(radius)
@@ -38,20 +42,23 @@ class Drivetrain(wpilib.RobotDrive, Subsystem):
         Vi = Vo * (radius - D) / (radius + D)
 
         if turn_dir > 0:
-            self.setLeftRightMotorOutputs(Vo, Vi)
+            self.setLeftRightMotorOutputs(Vo, Vi, velocity=velocity)
         else:
-            self.setLeftRightMotorOutputs(Vi, Vo)
+            self.setLeftRightMotorOutputs(Vi, Vo, velocity=velocity)
 
-    def radius_drive(self, forward_power, turn_power, power_factor):
+    def radius_drive(self, forward_power, turn_power, power_factor, velocity=False):
         if abs(turn_power) < 0.05:
-            self.setLeftRightMotorOutputs(forward_power * power_factor, forward_power * power_factor)
+            self.setLeftRightMotorOutputs(forward_power * power_factor, forward_power * power_factor, velocity=velocity)
             return
         if abs(forward_power) < 0.05:
-            self.setLeftRightMotorOutputs(turn_power * power_factor, -turn_power * power_factor)
+            # self.setLeftRightMotorOutputs(turn_power * power_factor, -turn_power * power_factor, velocity=velocity)
+            self.setLeftRightMotorOutputs(0, 0, velocity=velocity)
             return
-        # turn_power **= (1/3)
+        turn_power = mathutils.valroot(turn_power, 3)
         radius = self.max_turn_radius * (1 - abs(turn_power))
-        self.radius_turn(forward_power * power_factor, radius * mathutils.sgn(turn_power) * mathutils.sgn(forward_power))
+        self.radius_turn(forward_power * power_factor,
+                         radius * mathutils.sgn(turn_power), # * mathutils.sgn(forward_power),
+                         velocity=velocity)
 
     def turn_to_angle(self, angle, allowable_error=2):
         err = angle - self.get_heading()
@@ -82,15 +89,21 @@ class Drivetrain(wpilib.RobotDrive, Subsystem):
             else:
                 leftMotorSpeed = move - rotate
                 rightMotorSpeed = -max(-move, -rotate)
-        maxSpeed = 13  # fps
-        ratio = ((maxSpeed / 60) * 12) / (4 * math.pi)  # max speed in rpm
-        leftMotorSpeed *= ratio
-        rightMotorSpeed *= ratio
-        self.setLeftRightMotorOutputs(leftMotorSpeed, rightMotorSpeed)
+        self.setLeftRightMotorOutputs(leftMotorSpeed, rightMotorSpeed, velocity=True)
 
     def get_heading(self):
         return self.ahrs.getYaw()
 
     def default(self):
         self.setLeftRightMotorOutputs(0, 0)
+
+    def setLeftRightMotorOutputs(self, leftOutput, rightOutput, velocity=False):
+        if velocity:
+            ratio = 60 * self.max_speed / (math.pi * 4 * 12)  # max speed in rpm
+            leftOutput *= ratio
+            rightOutput *= ratio
+            self.rearLeftMotor.set(leftOutput)
+            self.rearRightMotor.set(-rightOutput)  # TODO make this apply to both motors
+        else:
+            super().setLeftRightMotorOutputs(leftOutput, rightOutput)
 
