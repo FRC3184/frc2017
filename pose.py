@@ -10,7 +10,6 @@ _estimator_thread = None
 _estimator = None
 
 
-
 class Pose(Vector2):
     """
     Robot pose in world coordinates
@@ -21,6 +20,14 @@ class Pose(Vector2):
 
     def __repr__(self):
         return "Pose(x={}, y={}, heading={})".format(self.x, self.y, self.heading)
+
+    def __add__(self, other):
+        assert type(other) == type(self)
+        return Pose(self.x + other.x, self.y + other.y, self.heading + other.heading)
+
+    def __sub__(self, other):
+        assert type(other) == type(self)
+        return Pose(self.x - other.x, self.y - other.y, self.heading - other.heading)
 
 
 def init(left_encoder_callback, right_encoder_callback, gyro_callback=None,
