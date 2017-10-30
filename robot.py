@@ -11,7 +11,7 @@ from commands import OpDriveCommand, MotionProfileDriveCommand, OpFuelTankComman
     OpGearCommand, TurnToAngleCommand, AutoGearCommand, DistanceDriveCommand, TurnToBoilerCommand, AutoFuelTankCommand, \
     TimeDriveCommand, AutoShooterCommand
 from dashboard import dashboard2
-from drivetrain import Drivetrain
+from drivetrain import SmartDrivetrain
 from wpy.motor import PWMMotor
 from systems import FuelTank, Shooter, GearLifter, Climber
 
@@ -43,11 +43,11 @@ class MyRobot(wpilib.SampleRobot):
         self.cmd_queue = []
         self.current_commands = []
 
-        self.drive = None
-        self.climber = None
-        self.fueltank = None
-        self.shooter = None
-        self.gear_lifter = None
+        self._drive = None
+        self._climber = None
+        self._fueltank = None
+        self._shooter = None
+        self._gear_lifter = None
 
         self.current_state = MyRobot.State.DISABLED
 
@@ -142,23 +142,23 @@ class MyRobot(wpilib.SampleRobot):
         dashboard2.indicator("Left Encoder", lambda: self.talon_left.isSensorPresent(sensor_type) == sensor_present)
         dashboard2.indicator("Right Encoder", lambda: self.talon_right.isSensorPresent(sensor_type) == sensor_present)
 
-        self.drive = Drivetrain(self.talon_left,
-                                self.talon_right)
-        self.drive.setInvertedMotor(Drivetrain.MotorType.kRearRight, True)
-        self.fueltank = FuelTank(self, self.victor_intake, self.victor_blender)
-        self.shooter = Shooter(self, self.talon_shooter)
-        self.climber = Climber(self, self.talon_climber)
-        self.gear_lifter = GearLifter(self)
+        self._drive = SmartDrivetrain(self.talon_left,
+                                      self.talon_right)
+
+        self._fueltank = FuelTank(self, self.victor_intake, self.victor_blender)
+        self._shooter = Shooter(self, self.talon_shooter)
+        self._climber = Climber(self, self.talon_climber)
+        self._gear_lifter = GearLifter(self)
 
         dashboard2.number_input("Drive Vel", 0.01)
         dashboard2.number_input("Drive Acc", 0.001)
         dashboard2.number_input("Drive Dist", 10)
 
-        self.systems = {"drive": self.drive,
-                        "climber": self.climber,
-                        "intake": self.fueltank,
-                        "shooter": self.shooter,
-                        "gear_lifter": self.gear_lifter}
+        self.systems = {"drive": self._drive,
+                        "climber": self._climber,
+                        "intake": self._fueltank,
+                        "shooter": self._shooter,
+                        "gear_lifter": self._gear_lifter}
 
         self.js_left = wpilib.Joystick(0)
         self.js_right = wpilib.Joystick(1)
@@ -184,7 +184,6 @@ class MyRobot(wpilib.SampleRobot):
             vel = float(dashboard2.number_inputs["Drive Vel"])
             acc = float(dashboard2.number_inputs["Drive Acc"])
             dist = float(dashboard2.number_inputs["Drive Dist"])
-
 
             drive_vel = 0.02
             drive_acc = 0.01
@@ -307,6 +306,29 @@ class MyRobot(wpilib.SampleRobot):
 
         for cmd in self.current_commands:
             cmd.cancel()
+
+    @property
+    def drive(self) -> SmartDrivetrain:
+        return self._drive
+
+    @property
+    def climber(self) -> Climber:
+        return self._climber
+
+    @property
+    def gear_lifter(self) -> GearLifter:
+        return self._gear_lifter
+
+    @property
+    def fueltank(self) -> FuelTank:
+        return self._fueltank
+
+    @property
+    def shooter(self) -> Shooter:
+        return self._shooter
+
+
+
 
 if __name__ == '__main__':
     wpilib.run(MyRobot)

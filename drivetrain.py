@@ -1,3 +1,6 @@
+import warnings
+
+import ctre
 import wpilib
 import math
 from robotpy_ext.common_drivers.navx.ahrs import AHRS
@@ -7,20 +10,56 @@ from command_based import Subsystem
 from dashboard import dashboard2
 
 
-class Drivetrain(wpilib.RobotDrive, Subsystem):
-    def __init__(self, *args, **kwargs):
-        wpilib.RobotDrive.__init__(self, *args)
+class SmartDrivetrain(Subsystem, wpilib.MotorSafety):
+    class Mode:
+        PercentVbus = ctre.CANTalon.ControlMode.PercentVbus
+        Speed = ctre.CANTalon.ControlMode.Speed
+        MotionMagic = ctre.CANTalon.ControlMode.MotionMagic
+        MotionProfile = ctre.CANTalon.ControlMode.MotionProfile
+
+    def __init__(self, left_motor: ctre.CANTalon, right_motor: ctre.CANTalon, **kwargs):
+        '''
+        Represents a drivetrain that uses CANTalons and so manages those advanced features
+        :param left_motor: 
+        :param right_motor: 
+        :param kwargs: 
+        '''
         Subsystem.__init__(self)
+        wpilib.MotorSafety.__init__(self)
         self.robot_width = kwargs.pop("robot_width", 29.25 / 12)
         self.max_turn_radius = kwargs.pop("max_radius", 10)
         self.wheel_diameter = kwargs.pop("wheel_diameter", 4)
         self.max_speed = kwargs.pop("max_speed", 13)
 
         self.ahrs = AHRS.create_i2c()
+        self._left_motor = left_motor
+        self._right_motor = right_motor
+
+        self._max_output = 1
+        self._mode = SmartDrivetrain.Mode.PercentVbus
+        self.set_mode(self._mode)
+        
+        # Motor safety
+        self.setSafetyEnabled(True)
 
         dashboard2.graph("Heading", lambda: self.get_heading())
 
-    def radius_turn(self, pow, radius, velocity=False):
+    def set_mode(self, mode):
+        if self._mode != mode:
+            self._mode = mode
+            self._left_motor.setControlMode(self._mode)
+            self._right_motor.setControlMode(self._mode)
+            if self._mode == SmartDrivetrain.Mode.PercentVbus:
+                self._max_output = 1
+                self.setSafetyEnabled(True)
+            elif self._mode == SmartDrivetrain.Mode.Speed:
+                self._max_output = self.get_fps_rpm_ratio()
+                self.setSafetyEnabled(True)
+            else:
+                self.setSafetyEnabled(False)
+                self._max_output = 0  # The idea of a max setpoint doesn't make sense for motion profiles
+
+    def _radius_turn(self, pow, radius):
         D = self.robot_width / 2
         turn_dir = mathutils.sgn(radius)
         radius = abs(radius)
@@ -28,76 +67,141 @@ class Drivetrain(wpilib.RobotDrive, Subsystem):
         Vi = Vo * (radius - D) / (radius + D)
 
         if turn_dir > 0:
-            self.setLeftRightMotorOutputs(Vo, Vi, velocity=velocity)
+            self._set_motor_outputs(Vo, Vi)
         else:
-            self.setLeftRightMotorOutputs(Vi, Vo, velocity=velocity)
+            self._set_motor_outputs(Vi, Vo)
 
-    def radius_drive(self, forward_power, turn_power, power_factor, velocity=False):
-        if abs(turn_power) < 0.05:
-            self.setLeftRightMotorOutputs(forward_power * power_factor, forward_power * power_factor, velocity=velocity)
-            return
-        if abs(forward_power) < 0.05:
-            self.setLeftRightMotorOutputs(0, 0, velocity=velocity)
-            return
-        turn_power = mathutils.signed_power(turn_power, 1/3)
-        radius = self.max_turn_radius * (1 - abs(turn_power))
-        self.radius_turn(forward_power * power_factor,
-                         radius * mathutils.sgn(turn_power),
-                         velocity=velocity)
-
-    def turn_to_angle(self, angle, allowable_error=2):
-        err = angle - self.get_heading()
-        if abs(err) < allowable_error:
-            self.arcadeDrive(0, 0)
-            return True
-        min_power = .6
-        p = err / 200
-        if abs(p) < min_power:
-            p = mathutils.sgn(p) * min_power
-        if abs(p) > 1:
-            p = mathutils.sgn(p)
-        self.arcadeDrive(0, -p)
-        return False
-
-    def arcade_velocity(self, move, rotate):
-        if move > 0.0:
-            if rotate > 0.0:
-                leftMotorSpeed = move - rotate
-                rightMotorSpeed = max(move, rotate)
-            else:
-                leftMotorSpeed = max(move, -rotate)
-                rightMotorSpeed = move + rotate
+    def radius_drive(self, forward_power, turn_power, power_factor, deadband=0.05):
+        if self.is_manual_control_mode():
+            if abs(turn_power) < deadband:
+                self._set_motor_outputs(forward_power * power_factor, forward_power * power_factor)
+                return
+            if abs(forward_power) < deadband:
+                self._set_motor_outputs(0, 0)
+                return
+            turn_power = mathutils.signed_power(turn_power, 1/3)
+            radius = self.max_turn_radius * (1 - abs(turn_power))
+            self._radius_turn(forward_power * power_factor,
+                             radius * mathutils.sgn(turn_power))
         else:
-            if rotate > 0.0:
-                leftMotorSpeed = -max(-move, rotate)
-                rightMotorSpeed = move + rotate
+            warnings.warn("Not in a control mode for Radius Drive", RuntimeWarning)
+            self._set_motor_outputs(0, 0)
+
+    def motion_magic(self, distance: float, speed: float, acc: float, curvature: float = 0):
+        """
+        Set the talons to drive in an arc or straight at speed, accelerating at acc.
+        Only needs to be called once.
+        If curvature != 0, the outside wheel goes distance at speed and acc, and the inner wheel speed is decreased.
+        :param distance: Distance in feet to travel
+        :param speed: Speed (in feet/sec) to cruise at
+        :param acc: Acceleration (in feet/sec^2) to accelerate/decelerate at
+        :param curvature: 1/radius of turn. If 0, drive straight.
+        :return: 
+        """
+        if curvature == 0:
+            ratio = 1
+            turn_dir = 1
+        else:
+            radius = 1 / curvature
+            D = self.robot_width / 2
+            turn_dir = mathutils.sgn(radius)
+            radius = abs(radius)
+            ratio = (radius - D) / (radius + D)
+
+        # Change units to what the talons are expecting
+        vel_rpm = self.fps_to_rpm(speed)
+        acc_rpm = self.fps_to_rpm(acc)  # Works because required unit is rpm/sec for no real good reason.
+        dist_revs = self.feet_to_revs(distance)
+
+        # Don't set encoder position to 0, because that would mess up pose estimation
+        # Instead, set to current position, plus however far we want to go
+        left_current_pos = self._left_motor.getPosition()
+        right_current_pos = self._right_motor.getPosition()
+
+        # Set the talon parameters
+        # If turn > 0, left is outside
+        if turn_dir > 0:
+            self._left_motor.setMotionMagicCruiseVelocity(vel_rpm)
+            self._right_motor.setMotionMagicCruiseVelocity(vel_rpm * ratio)
+            self._left_motor.setMotionMagicAcceleration(acc_rpm)
+            self._right_motor.setMotionMagicAcceleration(acc_rpm * ratio)
+            self._left_motor.set(left_current_pos + dist_revs)
+            self._right_motor.set(right_current_pos + dist_revs * ratio)
+        else:
+            self._left_motor.setMotionMagicCruiseVelocity(vel_rpm * ratio)
+            self._right_motor.setMotionMagicCruiseVelocity(vel_rpm)
+            self._left_motor.setMotionMagicAcceleration(acc_rpm * ratio)
+            self._right_motor.setMotionMagicAcceleration(acc_rpm)
+            self._left_motor.set(left_current_pos + dist_revs * ratio)
+            self._right_motor.set(right_current_pos + dist_revs)
+
+    def tank_drive(self, left: float, right: float, deadband=0.05):
+        if self.is_manual_control_mode():
+            left = mathutils.deadband(left, deadband)
+            right = mathutils.deadband(right, deadband)
+            self._set_motor_outputs(left, right)
+        else:
+            warnings.warn("Not in a control mode for Tank Drive", RuntimeWarning)
+            self._set_motor_outputs(0, 0)
+    
+    def arcade_drive(self, forward: float, turn: float, deadband=0.05):
+        if self.is_manual_control_mode():
+            forward = mathutils.deadband(forward, deadband)
+            turn = mathutils.deadband(turn, deadband)
+
+            if forward > 0.0:
+                if turn > 0.0:
+                    left = forward - turn
+                    right = max(forward, turn)
+                else:
+                    left = max(forward, -turn)
+                    right = forward + turn
             else:
-                leftMotorSpeed = move - rotate
-                rightMotorSpeed = -max(-move, -rotate)
-        self.setLeftRightMotorOutputs(leftMotorSpeed, rightMotorSpeed, velocity=True)
+                if turn > 0.0:
+                    left = -max(-forward, turn)
+                    right = forward + turn
+                else:
+                    left = forward - turn
+                    right = -max(-forward, -turn)
+
+            self._set_motor_outputs(left, right)
+        else:
+            warnings.warn("Not in a control mode for Arcade Drive", RuntimeWarning)
+            self._set_motor_outputs(0, 0)
 
     def get_heading(self):
         return self.ahrs.getYaw()
 
     def default(self):
-        self.setLeftRightMotorOutputs(0, 0)
+        self._set_motor_outputs(0, 0)
 
-    def setLeftRightMotorOutputs(self, leftOutput, rightOutput, velocity=False):
-        if velocity:
-            ratio = self.get_fps_rev_ratio()  # max speed in rpm
-            leftOutput *= ratio
-            rightOutput *= ratio
-            if self.frontLeftMotor:
-                self.frontLeftMotor.set(leftOutput)
-            self.rearLeftMotor.set(leftOutput)
-            if self.frontRightMotor:
-                self.frontRightMotor.set(rightOutput)
-            self.rearRightMotor.set(-rightOutput)
+    def get_fps_rpm_ratio(self):
+        return 60 * self.max_speed / (math.pi * self.wheel_diameter * 12)
 
-            self.feed()
-        else:
-            super().setLeftRightMotorOutputs(leftOutput, rightOutput)
+    def fps_to_rpm(self, fps: float):
+        return 60 * fps / (math.pi * self.wheel_diameter * 12)
 
-    def get_fps_rev_ratio(self):
-        return 60 * self.max_speed / (math.pi * 4 * 12)
+    def feet_to_revs(self, feet: float):
+        return feet / (math.pi * self.wheel_diameter * 12)
 
+    def revs_to_feet(self, revs: float):
+        try:
+            return (math.pi * self.wheel_diameter * 12) / revs
+        except ZeroDivisionError:
+            return 0
+    
+    def _set_motor_outputs(self, left: float, right: float):
+        if self._max_output != 0:
+            left *= self._max_output
+            right *= self._max_output
+        self._left_motor.set(left)
+        self._right_motor.set(-right)
+        self.feed()
+
+    def has_finished_motion_magic(self, margin=1/12):
+        left_err = self.revs_to_feet(self._left_motor.getClosedLoopError())
+        right_err = self.revs_to_feet(self._right_motor.getClosedLoopError())
+        return abs(left_err + right_err) / 2 < margin
+
+    def is_manual_control_mode(self):
+        return self._mode in (SmartDrivetrain.Mode.PercentVbus, SmartDrivetrain.Mode.Speed)

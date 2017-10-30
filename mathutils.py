@@ -21,3 +21,13 @@ def angle_difference(theta1, theta2):
 def signed_power(x, pow):
     s = sgn(x)
     return s * abs(x)**pow
+
+
+def deadband(x, deadband):
+    if abs(x) < deadband:
+        return 0
+    return x
+
+
+def clamp(x, vmin, vmax):
+    return min(max(x, vmin), vmax)
