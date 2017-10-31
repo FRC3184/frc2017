@@ -9,7 +9,7 @@ function Chart(jq, name) {
     this.minY = 0;
     this.maxY = 0;
     this.color = "#0000bb";
-    this.draw = function() {
+    this.draw = function () {
         var ctx = this.context;
         var real_height = this.element.height();
         var real_width = this.element.width();
@@ -24,8 +24,8 @@ function Chart(jq, name) {
         var maxX = this.data[this.data.length - 1].x;
         var minY = this.minY;
         var maxY = this.maxY;
-        var xSize = width/(maxX - minX);
-        var ySize = height/(this.maxY - this.minY);
+        var xSize = width / (maxX - minX);
+        var ySize = height / (this.maxY - this.minY);
 
         function transformX(x) {
             return ((x - minX) * xSize) + MARGIN;
@@ -43,21 +43,21 @@ function Chart(jq, name) {
         ctx.fillText(name, MARGIN + 5, MARGIN - 5);
 
         ctx.font = "10px Georgia";
-        var count = Math.round(real_width/40);
+        var count = Math.round(real_width / 40);
         for (var i = 0; i < count; i++) {
-            ctx.fillText("" + Math.round((minX + i * (maxX - minX)/count)*10)/10,
-                         MARGIN + i * width/count, MARGIN + height + 10)
+            ctx.fillText("" + Math.round((minX + i * (maxX - minX) / count) * 10) / 10,
+                MARGIN + i * width / count, MARGIN + height + 10)
         }
 
-        count = Math.round(real_height/30);
-        var step = (maxY - minY)/(count-1);
+        count = Math.round(real_height / 30);
+        var step = (maxY - minY) / (count - 1);
         for (var i = 0; i < count; i++) {
-            ctx.fillText("" + Math.floor((minY + i * step)*100)/100, 5,
-                         real_height - (MARGIN + i * height/(count-1)), MARGIN - 5)
+            ctx.fillText("" + Math.floor((minY + i * step) * 100) / 100, 5,
+                real_height - (MARGIN + i * height / (count - 1)), MARGIN - 5)
         }
 
         var first = true;
-        this.data.forEach(function(point) {
+        this.data.forEach(function (point) {
             var x = transformX(point.x);
             var y = transformY(point.y);
             //console.log(x + ", " + y);
@@ -72,7 +72,7 @@ function Chart(jq, name) {
         ctx.strokeStyle = this.color;
         ctx.stroke();
     };
-    this.add_point = function(point) {
+    this.add_point = function (point) {
         var y = point.y;
         if (y < this.minY) {
             this.minY = y;
@@ -88,10 +88,10 @@ function Chart(jq, name) {
         //this.recalc_extrema();
         this.draw();
     };
-    this.recalc_extrema = function() {
+    this.recalc_extrema = function () {
         this.maxY = -Number.MAX_VALUE;
         this.minY = Number.MAX_VALUE;
-        this.data.forEach(function(point) {
+        this.data.forEach(function (point) {
             var y = point.y;
             if (y < this.minY) {
                 this.minY = y;
@@ -101,7 +101,7 @@ function Chart(jq, name) {
             }
         }, this);
     };
-    this.drop_oldest = function() {
+    this.drop_oldest = function () {
         var oldest_point = this.data[0];
         this.data = this.data.slice(1);
         var y = oldest_point.y;
