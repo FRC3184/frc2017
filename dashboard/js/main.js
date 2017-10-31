@@ -45,7 +45,7 @@ var make_chart = function (data) {
     chart_wrapper = $("<div class=\"element-wrap ui-widget-content\" data-name=\"" + data.name + "\"></div>");
     chart_element.wrap(chart_wrapper);
 
-    $("#elements-toggle").append($("<label for='__toggle-" + data.name + "'>" + data.name + "</label><input type='checkbox' class='display-toggle' id='__toggle-" + data.name + "' data-target='" + data.name + "' checked /><br /> "));
+    $("#elements-toggle").append($("<div class='toggle-block'><label for='__toggle-" + data.name + "'>" + data.name + "</label><input type='checkbox' class='display-toggle' id='__toggle-" + data.name + "' data-target='" + data.name + "' checked /></div><br /> "));
 
     var my_chart = new Chart(chart_element, data.name);
 
@@ -72,7 +72,7 @@ var make_input = function (data) {
     var element = $("<input class=\"number-input\" type=\"number\" data-name=\"" + data.name + "\" value=\"" + data.value + "\"/>");
     element.appendTo("#dashboard");
     element.wrap($("<div class=\"element-wrap ui-widget-content\" style=\"height:100px;width:100px\" data-name=\"" + data.name + "\"></div>"));
-    element.after("<label>" + data.name + "</label>")
+    element.before("<label>" + data.name + "</label>")
 };
 var make_extension = function (data) {
     var element = $(data.html);
