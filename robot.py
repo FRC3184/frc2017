@@ -1,3 +1,5 @@
+import os
+
 import ctre.cantalon
 import time
 
@@ -77,7 +79,11 @@ class MyRobot(wpilib.SampleRobot):
         dashboard2.update(time_now)
 
     def robotInit(self):
-        dashboard2.run()
+        if wpilib.hal.isSimulation():
+            basedir = ""
+        else:
+            basedir = "/home/lvuser/py"
+        dashboard2.run(basedir)
         wpilib.CameraServer.launch()
 
         dashboard2.chooser("Autonomous", ["None", "Drive MotionMagic", "Align Shoot",

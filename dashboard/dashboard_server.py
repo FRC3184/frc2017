@@ -8,6 +8,7 @@ import time
 
 paths = {}
 methods = {}
+_basedir = None
 
 
 def serve_path(path_name, handler):
@@ -83,7 +84,7 @@ class FileResponse(StaticResponse):
     def __init__(self, file_path, mimetype="text/html", code=200):
         class Dummy:
             def encode(self, encoding, errors=""):
-                with open(file_path) as file:
+                with open("{}{}".format(_basedir, file_path)) as file:
                     return ''.join(file.readlines()).encode(encoding, errors)
         content = Dummy()
         super().__init__(content, mimetype, code)
@@ -99,7 +100,7 @@ class StaticDirectoryResponse(Response):
         self.begin(handler)
 
         try:
-            with open(self.serve_dir + path.path[len(self.base_path):]) as serve_file:  # AAAAAAAAAHHHHH
+            with open("{}{}{}".format(_basedir, self.serve_dir, path.path[len(self.base_path):])) as serve_file:  # AAAAAAAAAHHHHH
                 handler.wfile.write(''.join(serve_file.readlines()).encode('utf-8'))
         except FileNotFoundError as err:
             print("File not found: " + err.filename)
@@ -167,7 +168,11 @@ class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
     """Handle requests in a separate thread."""
 
 
-def run(port=5800, daemon_threads=True):
+def run(basedir="", port=5800, daemon_threads=True):
+    global _basedir
+    _basedir = basedir
+    if _basedir != "" and _basedir[-1] != "/":
+        _basedir += "/"
     server = ThreadedHTTPServer(('', port), Handler)
     server.daemon_threads = daemon_threads
     print('Starting dashboard server on port {}'.format(port))
