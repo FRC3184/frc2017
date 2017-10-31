@@ -109,12 +109,10 @@ source.addEventListener('indicator', function(event) {
 });
 source.addEventListener("action", function(event) {
   var data = JSON.parse(event.data);
-  console.log(data);
+  if (data.name in name_map || data.name in chooser_map) {
+    return;
+  }
   switch (data.action) {
-    default:
-      if (data.name in name_map || data.name in chooser_map) {
-        break;
-      }
     case "make_extension":
       make_extension(data);
       break;
