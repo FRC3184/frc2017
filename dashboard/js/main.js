@@ -1,5 +1,6 @@
 var name_map = {};
 var chooser_map = {};
+var connect_state = false;
 var my_grid = [100, 100];
 var drag_opts = {
     grid: my_grid,
@@ -223,25 +224,36 @@ $(document).ready(function () {
     }, 500);
 
     setInterval(function () {
-        var elem = $("#robot-status")
+        var elem = $("#robot-status");
         switch (source.readyState) {
             case 0:
                 elem.removeClass("connected");
                 elem.removeClass("closed");
                 elem.addClass("connecting");
                 elem.html("Connecting...");
+                if (connect_state) {
+                    connect_state = false;
+                }
                 break;
             case 1:
                 elem.addClass("connected");
                 elem.removeClass("closed");
                 elem.removeClass("connecting");
                 elem.html("Connected!");
+                if (!connect_state) {
+                    $(".chooser").change();
+                    $(".number-input").change();
+                    connect_state = true;
+                }
                 break;
             case 2:
                 elem.removeClass("connected");
                 elem.addClass("closed");
                 elem.removeClass("connecting");
                 elem.html("Not connected!");
+                if (connect_state) {
+                    connect_state = false;
+                }
                 break;
         }
     }, 500);
