@@ -25,6 +25,16 @@ def signed_power(x, pow):
     return s * abs(x)**pow
 
 
+def deadband(x, deadband):
+    if abs(x) < deadband:
+        return 0
+    return x
+
+
+def clamp(x, vmin, vmax):
+    return min(max(x, vmin), vmax)
+  
+  
 class Vector2:
     """
     A 2D vector. x,y are in world coordinates

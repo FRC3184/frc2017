@@ -6,29 +6,41 @@ from command_based import Command
 import ctre
 import math
 
+from drivetrain import SmartDrivetrain
+
 
 class TurnToAngleCommand(Command):
     def __init__(self, my_robot, angle):
         super().__init__(my_robot)
         self.result = False
         self.angle = angle
+        self.start_angle = 0
 
     def can_run(self):
         return not self.my_robot.drive.is_occupied
 
     def init(self):
         print("Turn started")
-        self.my_robot.drive.ahrs.reset()
+        self.start_angle = self.my_robot.drive.get_heading()
         self.my_robot.drive.occupy()
+        self.my_robot.drive.set_mode(SmartDrivetrain.Mode.Speed)
 
     def is_finished(self):
         return self.result
 
     def finish(self):
+        self.my_robot.drive.set_mode(SmartDrivetrain.Mode.PercentVbus)
         self.my_robot.drive.release()
 
     def run_periodic(self):
-        self.result = self.my_robot.drive.turn_to_angle(self.angle)
+        err = self.angle - (self.start_angle - self.my_robot.drive.get_heading())
+        if err < 2 or self.result:
+            self.my_robot.drive.arcade_drive(0, 0)
+            self.result = True
+        else:
+            p = (1/200) * err
+            p = mathutils.clamp(p, -1, 1)
+            self.my_robot.drive.arcade_drive(0, -p)
 
 
 class OpFuelTankCommand(Command):
@@ -222,20 +234,14 @@ class OpDriveCommand(Command):
         return not self.my_robot.drive.is_occupied
 
     def init(self):
-        if self.velocity:
-            self.my_robot.talon_left.setControlMode(ctre.CANTalon.ControlMode.Speed)
-            self.my_robot.talon_right.setControlMode(ctre.CANTalon.ControlMode.Speed)
-        else:
-            self.my_robot.talon_left.setControlMode(ctre.CANTalon.ControlMode.PercentVbus)
-            self.my_robot.talon_right.setControlMode(ctre.CANTalon.ControlMode.PercentVbus)
         self.my_robot.drive.occupy()
+        self.my_robot.drive.set_mode(SmartDrivetrain.Mode.Speed if self.velocity else SmartDrivetrain.Mode.PercentVbus)
 
     def is_finished(self):
         return not self.my_robot.isOperatorControl() or self.manually_finish
 
     def finish(self):
-        self.my_robot.talon_left.setControlMode(ctre.CANTalon.ControlMode.PercentVbus)
-        self.my_robot.talon_right.setControlMode(ctre.CANTalon.ControlMode.PercentVbus)
+        self.my_robot.drive.set_mode(SmartDrivetrain.Mode.PercentVbus)
         self.my_robot.drive.release()
         self.manually_finish = False
 
@@ -251,12 +257,13 @@ class OpDriveCommand(Command):
             spenner = 0.7
 
         if js_left.getRawButton(tank_button) or js_right.getRawButton(tank_button):
-            self.my_robot.drive.tankDrive(-spenner * js_left.getY(), -spenner * js_right.getY())
+            self.my_robot.drive.tank_drive(-spenner * js_left.getY(), -spenner * js_right.getY())
         elif js_left.getRawButton(qt_button) or js_right.getRawButton(qt_button):
-            self.my_robot.drive.arcadeDrive(0, -js_right.getX())
+            self.my_robot.drive.arcade_drive(0, -js_right.getX())
         else:
-            self.my_robot.drive.radius_drive(-mathutils.signed_power(js_left.getY(), 2), mathutils.signed_power(js_right.getX(), 2),
-                                             spenner, velocity=self.velocity)
+            self.my_robot.drive.radius_drive(-mathutils.signed_power(js_left.getY(), 2),
+                                             mathutils.signed_power(js_right.getX(), 2),
+                                             spenner)
 
 
 class DistanceDriveCommand(Command):
@@ -271,25 +278,29 @@ class DistanceDriveCommand(Command):
         self.dist_revs = self.dist / self.scale_factor
         self.angle = 0
 
+        self.left_pos_start = 0
+        self.right_pos_start = 0
+
     def can_run(self):
         return not self.drive.is_occupied
 
     def init(self):
         print("{}in drive started".format(self.dist))
         self.drive.occupy()
-        self.my_robot.talon_left.setPosition(0)
+        self.left_pos_start = self.my_robot.talon_left.getPosition()
+        self.right_pos_start = self.my_robot.talon_right.getPosition()
         self.my_robot.talon_right.setPosition(0)
+        self.my_robot.drive.set_mode(SmartDrivetrain.Mode.PercentVbus)
         self.angle = self.drive.get_heading()
 
     def is_finished(self):
-        left_on = abs(self.my_robot.talon_left.getPosition() * self.scale_factor) > self.dist
-        right_on = abs(self.my_robot.talon_right.getPosition() * self.scale_factor) > self.dist
+        left_on = abs((self.my_robot.talon_left.getPosition() - self.left_pos_start) * self.scale_factor) > self.dist
+        right_on = abs((self.my_robot.talon_right.getPosition() - self.right_pos_start) * self.scale_factor) > self.dist
         return left_on or right_on
 
     def finish(self):
+        self.my_robot.drive.set_mode(SmartDrivetrain.Mode.PercentVbus)
         self.drive.release()
-        self.my_robot.talon_left.setPosition(0)
-        self.my_robot.talon_right.setPosition(0)
 
     def run_periodic(self):
         err = self.angle - self.drive.get_heading()
@@ -311,12 +322,14 @@ class TimeDriveCommand(Command):
 
     def init(self):
         self.drive.occupy()
+        self.my_robot.drive.set_mode(SmartDrivetrain.Mode.PercentVbus)
         self.timer.reset()
 
     def is_finished(self):
         return self.timer.get() > self.time
 
     def finish(self):
+        self.my_robot.drive.set_mode(SmartDrivetrain.Mode.PercentVbus)
         self.drive.release()
 
     def run_periodic(self):
@@ -325,13 +338,14 @@ class TimeDriveCommand(Command):
 
 
 class MotionProfileDriveCommand(Command):
-    def __init__(self, my_robot, dist, vel, acc, margin=1/12):
+    def __init__(self, my_robot, dist, vel, acc, curvature=0, margin=1 / 12):
         super().__init__(my_robot)
         self.drive = my_robot.drive
         self.dist = dist
         self.vel = vel  # ft/s
         self.acc = acc  # ft/s^2
         self.margin = margin
+        self.curvature = curvature
 
         self.scale_factor = math.pi * self.drive.wheel_diameter / 12  # ft/rev
 
@@ -340,40 +354,15 @@ class MotionProfileDriveCommand(Command):
 
     def init(self):
         self.drive.occupy()
-        self.my_robot.drive.setSafetyEnabled(enabled=False)
-
-        self.my_robot.talon_left.setPosition(0)
-        self.my_robot.talon_right.setPosition(0)
-
-        vel_rpm = (self.vel / self.scale_factor) * 60  # RPM
-        acc_rpm = (self.acc / self.scale_factor) * 60  # RPM/sec
-        print("RPM: {}".format(vel_rpm))
-        print("RPM/s: {}".format(acc_rpm))
-        self.my_robot.talon_left.setMotionMagicCruiseVelocity(vel_rpm)
-        self.my_robot.talon_right.setMotionMagicCruiseVelocity(vel_rpm)
-        self.my_robot.talon_left.setMotionMagicAcceleration(acc_rpm)
-        self.my_robot.talon_right.setMotionMagicAcceleration(acc_rpm)
-
-        self.my_robot.talon_left.setControlMode(ctre.CANTalon.ControlMode.MotionMagic)
-        self.my_robot.talon_right.setControlMode(ctre.CANTalon.ControlMode.MotionMagic)
-        print("Set mode to MM {} ".format(self.my_robot.talon_left.getControlMode()))
-
-        dist_revs = self.dist / self.scale_factor
-        self.my_robot.talon_left.set(dist_revs)
-        self.my_robot.talon_right.set(dist_revs)
+        self.my_robot.drive.set_mode(SmartDrivetrain.Mode.MotionMagic)
+        self.my_robot.drive.motion_magic(self.dist, self.vel, self.acc, curvature=self.curvature)
 
     def is_finished(self):
-        dist_revs = self.dist / self.scale_factor
-        left_err = self.my_robot.talon_left.getPosition() - dist_revs
-        right_err = self.my_robot.talon_right.getPosition() - dist_revs
-        margin = 0.004
-        return abs(left_err) < 0.004 and abs(right_err) < 0.004
+        return self.my_robot.drive.has_finished_motion_magic(self.margin)
 
     def finish(self):
         self.drive.release()
-        self.my_robot.drive.setSafetyEnabled(enabled=True)
-        self.my_robot.talon_left.setControlMode(ctre.CANTalon.ControlMode.PercentVbus)
-        self.my_robot.talon_right.setControlMode(ctre.CANTalon.ControlMode.PercentVbus)
+        self.my_robot.drive.set_mode(SmartDrivetrain.Mode.PercentVbus)
         print("Finished motion profile")
 
     def run_periodic(self):
@@ -453,8 +442,6 @@ class TurnToBoilerCommand(Command):
     def init(self):
         self.my_robot.drive.occupy()
         self.result = False
-        self.angle = 0
-        self.state = 0
         self.vision_table = NetworkTables.getTable("vision")
 
     def is_finished(self):
@@ -464,84 +451,10 @@ class TurnToBoilerCommand(Command):
         self.my_robot.drive.release()
 
     def run_periodic(self):
-        if self.state == 0:
-            if self.vision_table.getBoolean("seeBoiler", False):
-                self.state = 1
-                self.angle = self.vision_table.getNumber("angle") * 0.5
-                self.my_robot.drive.ahrs.reset()
-            else:
-                self.my_robot.drive.arcadeDrive(0, 0.5)
-
-        elif self.state == 1:
-            if self.my_robot.drive.turn_to_angle(self.angle, allowable_error=1):
-                self.state = 2
-                wpilib.Timer.delay(5/10)
-        elif self.state == 2:
-            self.angle = self.vision_table.getNumber("angle")
-            if abs(self.angle) < 1:
-                self.result = True
-            else:
-                self.state = 1
-                self.angle = self.vision_table.getNumber("angle") * 0.5 + 1 / 4
-                self.my_robot.drive.ahrs.reset()
-
-
-class MotionProfileRadiusDriveCommand(Command):
-    def __init__(self, my_robot, radius, angle, vel, acc, margin=2):
-        super().__init__(my_robot)
-        self.drive = my_robot.drive
-        self.radius = abs(radius)
-        self.dir = mathutils.sgn(radius)
-        self.angle = angle
-        self.vel = vel
-        self.acc = acc
-        self.margin = margin
-
-        self.scale_factor = (math.pi * self.drive.wheel_diameter / 12)
-        self.wheel_ratio = (radius - self.drive.robot_width / 2) / (radius + self.drive.robot_width / 2)
-
-    def can_run(self):
-        return not self.drive.is_occupied
-
-    def init(self):
-        self.drive.occupy()
-
-        vel_rpm_outer = (self.vel / self.scale_factor) / 60
-        acc_rpm_outer = (self.acc / self.scale_factor) / 60 ** 2
-        vel_rpm_inner = self.wheel_ratio * vel_rpm_outer
-        acc_rpm_inner = self.wheel_ratio * acc_rpm_outer
-
-        self.my_robot.talon_left.setControlMode(ctre.CANTalon.ControlMode.MotionMagic)
-        self.my_robot.talon_right.setControlMode(ctre.CANTalon.ControlMode.MotionMagic)
-
-        dist_revs_outer = self.angle * (self.radius + self.drive.robot_width) / self.scale_factor
-        dist_revs_inner = self.angle * (self.radius - self.drive.robot_width) / self.scale_factor
-        if self.dir == 1:
-            outer_talon = self.my_robot.talon_left
-            inner_talon = self.my_robot.talon_right
+        if self.vision_table.getBoolean("seeBoiler", False):
+            angle = self.vision_table.getNumber("angle") * 0.5
+            # Put turn to angle on top of the queue so it starts next
+            self.my_robot.cmd_queue.insert(0, TurnToAngleCommand(self.my_robot, angle))
+            self.result = True
         else:
-            outer_talon = self.my_robot.talon_right
-            inner_talon = self.my_robot.talon_left
-            
-        outer_talon.setMotionMagicCruiseVelocity(vel_rpm_outer)
-        outer_talon.setMotionMagicCruiseVelocity(vel_rpm_outer)
-        outer_talon.setMotionMagicAcceleration(acc_rpm_outer)
-        outer_talon.set(dist_revs_outer)
-        
-        inner_talon.setMotionMagicCruiseVelocity(vel_rpm_inner)
-        inner_talon.setMotionMagicCruiseVelocity(vel_rpm_inner)
-        inner_talon.setMotionMagicAcceleration(acc_rpm_inner)
-        inner_talon.set(dist_revs_inner)
-
-    def is_finished(self):
-        left_on = self.my_robot.talon_left.getClosedLoopError() / self.scale_factor < self.margin
-        right_on = self.my_robot.talon_right.getClosedLoopError() / self.scale_factor < self.margin
-        return left_on and right_on
-
-    def finish(self):
-        self.drive.release()
-        self.my_robot.talon_left.setControlMode(ctre.CANTalon.ControlMode.PercentVbus)
-        self.my_robot.talon_right.setControlMode(ctre.CANTalon.ControlMode.PercentVbus)
-
-    def run_periodic(self):
-        pass
+            self.my_robot.drive.arcade_drive(0, 0.5)
