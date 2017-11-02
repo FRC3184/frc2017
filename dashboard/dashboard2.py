@@ -54,8 +54,8 @@ def extension(name, html, js, css, callback_path=None, callback=None):
         dashboard_server.method_path(callback_path, callback)
 
 
-def run():
-    server_thread = Thread(target=dashboard_server.run)
+def run(basedir):
+    server_thread = Thread(target=lambda: dashboard_server.run(basedir=basedir))
     server_thread.daemon = True
     server_thread.start()
 
