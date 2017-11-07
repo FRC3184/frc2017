@@ -1,7 +1,5 @@
 import math
 
-import pose
-
 
 def sgn(x):
     return 0 if x == 0 else x/abs(x)
@@ -81,6 +79,7 @@ class Vector2:
         return Vector2(self.x - other.x, self.y - other.y)
 
     def __add__(self, other):
+        import pose
         assert type(other) == Vector2 or type(other) == pose.Pose
         return Vector2(self.x + other.x, self.y + other.y)
 
