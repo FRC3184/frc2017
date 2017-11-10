@@ -40,7 +40,7 @@ def init(left_encoder_callback, right_encoder_callback, gyro_callback=None,
         _estimator_thread.start()
 
 
-def get_current_pose():
+def get_current_pose() -> Pose:
     if _estimator is not None:
         return _estimator.current_pose
     raise ValueError("Estimator has not been initialized")

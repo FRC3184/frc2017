@@ -1,4 +1,6 @@
 import time
+
+from datetime import datetime
 import wpilib
 
 import wpy.driverstation
@@ -28,6 +30,10 @@ def get_match_time():
         return _teleop_time - get_period_remaining_time()
     elif wpilib.DriverStation.getInstance().isDisabled():
         return 0
+
+
+def millis():
+    return datetime.now().timestamp() * 1000
 
 
 def is_endgame():

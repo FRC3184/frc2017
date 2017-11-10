@@ -1,3 +1,4 @@
+import threading
 import warnings
 
 import ctre
@@ -6,6 +7,8 @@ import math
 from robotpy_ext.common_drivers.navx.ahrs import AHRS
 
 import mathutils
+import pose
+import robot_time
 from command_based import Subsystem
 from dashboard import dashboard2
 
@@ -38,11 +41,38 @@ class SmartDrivetrain(Subsystem, wpilib.MotorSafety):
         self._max_output = 1
         self._mode = SmartDrivetrain.Mode.PercentVbus
         self.set_mode(self._mode)
+
+        self._model_left_dist = 0
+        self._model_right_dist = 0
+        self._model_last_time = robot_time.millis()
+
+        if wpilib.hal.isSimulation():
+            model_thread = threading.Thread(target=self._update_model)
+            model_thread.start()
         
         # Motor safety
         self.setSafetyEnabled(True)
 
+        pose.init(self.get_left_distance, self.get_right_distance, self.get_heading,
+                  encoder_factor=self.get_fps_rpm_ratio())
+
         dashboard2.graph("Heading", lambda: self.get_heading())
+
+        def get_pose_xy():
+            p = pose.get_current_pose()
+            print(p)
+            return p.x, p.y
+        dashboard2.plot("Pose", get_pose_xy)
+
+    def _update_model(self):
+        now = robot_time.millis()
+        dt = (now - self._model_last_time) / 1000
+        self._model_last_time = now
+        if self._mode == SmartDrivetrain.Mode.PercentVbus:
+            self._model_left_dist += self._left_motor.get() * 5800/60
+            self._model_right_dist += self._right_motor.get() * 5800/60
+        else:
+            print("Can't update model outside of PercentVBus")
 
     def set_mode(self, mode):
         if self._mode != mode:
@@ -172,6 +202,18 @@ class SmartDrivetrain(Subsystem, wpilib.MotorSafety):
     def get_heading(self):
         return self.ahrs.getYaw()
 
+    def get_left_distance(self):
+        if wpilib.hal.isSimulation():
+            return self._model_left_dist
+        else:
+            return self._left_motor.getPosition()
+
+    def get_right_distance(self):
+        if wpilib.hal.isSimulation():
+            return self._model_right_dist
+        else:
+            return self._right_motor.getPosition()
+
     def default(self):
         self._set_motor_outputs(0, 0)
 
@@ -195,7 +237,7 @@ class SmartDrivetrain(Subsystem, wpilib.MotorSafety):
             left *= self._max_output
             right *= self._max_output
         self._left_motor.set(left)
-        self._right_motor.set(-right)
+        self._right_motor.set(right)
         self.feed()
 
     def has_finished_motion_magic(self, margin=1/12):
