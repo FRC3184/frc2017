@@ -275,7 +275,7 @@ class MyRobot(wpilib.SampleRobot):
         while self.isAutonomous():
             # Loop
             self.current_state = MyRobot.State.AUTO
-
+            
             self.periodic()
             robot_time.sleep(millis=self.delay_millis)
 
@@ -306,7 +306,7 @@ class MyRobot(wpilib.SampleRobot):
         while self.isOperatorControl():
             # Loop
             self.current_state = MyRobot.State.TELEOP
-
+            print(self.js_left.getRawButton(1))
             self.periodic()
             robot_time.sleep(millis=self.delay_millis)
 
