@@ -156,8 +156,8 @@ class MyRobot(wpilib.SampleRobot):
         self._climber = Climber(self, self.talon_climber)
         self._gear_lifter = GearLifter(self)
 
-        dashboard2.number_input("Drive Vel", 0.01)
-        dashboard2.number_input("Drive Acc", 0.001)
+        dashboard2.number_input("Drive Vel", 10)
+        dashboard2.number_input("Drive Acc", 10)
         dashboard2.number_input("Drive Dist", 10)
 
         self.systems = {"drive": self._drive,

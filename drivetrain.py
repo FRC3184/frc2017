@@ -112,11 +112,13 @@ class SmartDrivetrain(Subsystem, wpilib.MotorSafety):
         vel_rpm = self.fps_to_rpm(speed)
         acc_rpm = self.fps_to_rpm(acc)  # Works because required unit is rpm/sec for no real good reason.
         dist_revs = self.feet_to_revs(distance)
+        print(dist_revs)
 
         # Don't set encoder position to 0, because that would mess up pose estimation
         # Instead, set to current position, plus however far we want to go
         left_current_pos = self._left_motor.getPosition()
         right_current_pos = self._right_motor.getPosition()
+
 
         # Set the talon parameters
         # If turn > 0, left is outside
@@ -176,17 +178,17 @@ class SmartDrivetrain(Subsystem, wpilib.MotorSafety):
         self._set_motor_outputs(0, 0)
 
     def get_fps_rpm_ratio(self):
-        return 60 * self.max_speed / (math.pi * self.wheel_diameter * 12)
+        return 12 * 60 * self.max_speed / (math.pi * self.wheel_diameter)
 
     def fps_to_rpm(self, fps: float):
-        return 60 * fps / (math.pi * self.wheel_diameter * 12)
+        return 60 * 12 * fps / (math.pi * self.wheel_diameter)
 
     def feet_to_revs(self, feet: float):
-        return feet / (math.pi * self.wheel_diameter * 12)
+        return 12 * feet / (math.pi * self.wheel_diameter)
 
     def revs_to_feet(self, revs: float):
         try:
-            return (math.pi * self.wheel_diameter * 12) / revs
+            return (math.pi * self.wheel_diameter) * revs / 12
         except ZeroDivisionError:
             return 0
     
@@ -195,13 +197,21 @@ class SmartDrivetrain(Subsystem, wpilib.MotorSafety):
             left *= self._max_output
             right *= self._max_output
         self._left_motor.set(left)
-        self._right_motor.set(-right)
+        self._right_motor.set(right)
         self.feed()
 
     def has_finished_motion_magic(self, margin=1/12):
-        left_err = self.revs_to_feet(self._left_motor.getClosedLoopError())
-        right_err = self.revs_to_feet(self._right_motor.getClosedLoopError())
+        left_err = self.revs_to_feet(self._left_motor.getPosition() - self._left_motor.getSetpoint())
+        right_err = self.revs_to_feet(self._right_motor.getPosition() - self._right_motor.getSetpoint())
         return abs(left_err + right_err) / 2 < margin
 
     def is_manual_control_mode(self):
         return self._mode in (SmartDrivetrain.Mode.PercentVbus, SmartDrivetrain.Mode.Speed)
+
+    def getDescription(self):
+        return "SmartDrivetrain"
+
+    def stopMotor(self):
+        self._left_motor.stopMotor()
+        self._right_motor.stopMotor()
+        self.feed()
