@@ -6,6 +6,7 @@ from command_based import Command
 import ctre
 import math
 
+from dashboard import dashboard2
 from drivetrain import SmartDrivetrain
 
 
@@ -33,12 +34,14 @@ class TurnToAngleCommand(Command):
         self.my_robot.drive.release()
 
     def run_periodic(self):
-        err = self.angle - (self.start_angle - self.my_robot.drive.get_heading())
-        if err < 2 or self.result:
+        err = -(self.angle - (self.start_angle - self.my_robot.drive.get_heading()))
+        print(err)
+        if abs(err) < 2 or self.result:
             self.my_robot.drive.arcade_drive(0, 0)
             self.result = True
         else:
-            p = (1/200) * err
+            Kp = float(dashboard2.number_inputs["Turn Kp"])
+            p = Kp * err
             p = mathutils.clamp(p, -1, 1)
             self.my_robot.drive.arcade_drive(0, -p)
 
@@ -259,7 +262,8 @@ class OpDriveCommand(Command):
         if js_left.getRawButton(tank_button) or js_right.getRawButton(tank_button):
             self.my_robot.drive.tank_drive(-spenner * js_left.getY(), -spenner * js_right.getY())
         elif js_left.getRawButton(qt_button) or js_right.getRawButton(qt_button):
-            self.my_robot.drive.arcade_drive(0, -js_right.getX())
+            self.my_robot.drive.arcade_drive(spenner * mathutils.signed_power(-js_left.getY(), 2),
+                                             spenner * mathutils.signed_power(-js_right.getX(), 2))
         else:
             self.my_robot.drive.radius_drive(-mathutils.signed_power(js_left.getY(), 2),
                                              mathutils.signed_power(js_right.getX(), 2),

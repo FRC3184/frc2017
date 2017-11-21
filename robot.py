@@ -139,6 +139,8 @@ class MyRobot(wpilib.SampleRobot):
         # self.talon_left.setVoltageRampRate(volt_ramp)
         # self.talon_right.setVoltageRampRate(volt_ramp)
 
+        dashboard2.number_input("Turn Kp", 0.005)
+
         dashboard2.graph("Blender Current", self.victor_blender.get_current)
         dashboard2.graph("Climber Current", self.talon_climber.get_current)
         dashboard2.graph("Drive Current", self.talon_left.getOutputCurrent)
@@ -199,7 +201,7 @@ class MyRobot(wpilib.SampleRobot):
                 cmds.append(AutoGearCommand(self, AutoGearCommand.State.up))
                 cmds.append(MotionProfileDriveCommand(self, (108 - 15.5 - 10 + 5 + (0 if is_right else 5)) / 12,
                                                       drive_vel, drive_acc))
-                cmds.append(TurnToAngleCommand(self, (-1 if is_right else 1) * 53))
+                cmds.append(TurnToAngleCommand(self, (1 if is_right else -1) * 12))
                 cmds.append(MotionProfileDriveCommand(self, (44 - 4 - 5) / 12, drive_vel, drive_acc))
                 cmds.append(AutoGearCommand(self, AutoGearCommand.State.down))
                 cmds.append(MotionProfileDriveCommand(self, -30 / 12, drive_vel, drive_acc))
@@ -306,7 +308,6 @@ class MyRobot(wpilib.SampleRobot):
         while self.isOperatorControl():
             # Loop
             self.current_state = MyRobot.State.TELEOP
-            print(self.js_left.getRawButton(1))
             self.periodic()
             robot_time.sleep(millis=self.delay_millis)
 

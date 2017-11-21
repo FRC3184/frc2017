@@ -80,9 +80,9 @@ class SmartDrivetrain(Subsystem, wpilib.MotorSafety):
                 self._set_motor_outputs(0, 0)
                 return
             turn_power = mathutils.signed_power(turn_power, 1/3)
-            radius = self.max_turn_radius * (1 - abs(turn_power))
+            radius = self.robot_width / 2 + self.max_turn_radius * (1 - abs(turn_power))
             self._radius_turn(forward_power * power_factor,
-                             radius * mathutils.sgn(turn_power))
+                              radius * mathutils.sgn(turn_power))
         else:
             warnings.warn("Not in a control mode for Radius Drive", RuntimeWarning)
             self._set_motor_outputs(0, 0)
