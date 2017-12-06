@@ -91,3 +91,59 @@ class Vector2:
 
     def __neg__(self):
         return self * -1
+
+
+class LineSegment:
+    def __init__(self, point1: Vector2, point2: Vector2):
+        d = Vector2(point2.x - point1.x, point2.y - point1.y)
+        self.slope = d.normalized()
+        self.max_t = abs(d)
+        self.intersect = point1
+        self.point1 = point1
+        self.point2 = point2
+
+    def plot(self, plt, resolution=0.1):
+        t0 = 0
+        t1 = self.max_t
+        i = t0
+        xx = []
+        yy = []
+        while i < t1:
+            p = self.r(i)
+            xx += [p.x]
+            yy += [p.y]
+            i += resolution
+        plt.plot(xx, yy)
+
+    def projected_point(self, point: Vector2):
+        pt = point - self.intersect
+        a_scalar = pt * self.slope
+        return self.slope * a_scalar + self.intersect
+
+    def invert(self, point: Vector2):
+        tr_point = point - self.intersect
+        if self.slope.x == 0:
+            return tr_point.y / self.slope.y
+        elif self.slope.y == 0:
+            return tr_point.x / self.slope.x
+        return (tr_point.x / self.slope.x + tr_point.y / self.slope.y) / 2
+
+    def r(self, t):
+        if t > self.max_t or t < 0:
+            raise ValueError("t outside range")
+        return self.intersect + self.slope * t
+
+    def on_line(self, point: Vector2, epsilon=1e-3):
+
+        tr_point = point - self.intersect
+        if self.slope.x == 0:
+            return abs(tr_point.x) < epsilon
+        elif self.slope.y == 0:
+            return abs(tr_point.y) < epsilon
+        return abs(tr_point.x / self.slope.x - tr_point.y / self.slope.y) < epsilon
+
+    def in_segment(self, t: float):
+        return 0 <= t <= self.max_t
+
+    def __repr__(self):
+        return "Line(t<{}, {}> + <{}, {}>".format(self.slope.x, self.slope.y, self.intersect.x, self.intersect.y)

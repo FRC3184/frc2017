@@ -7,13 +7,16 @@ import math
 import wpilib
 from networktables import NetworkTables
 
+import pose
 import robot_time
 from command_based import CommandSequence
 from commands import OpDriveCommand, MotionProfileDriveCommand, OpFuelTankCommand, OpShooterCommand, OpClimberCommand, \
     OpGearCommand, TurnToAngleCommand, AutoGearCommand, DistanceDriveCommand, TurnToBoilerCommand, AutoFuelTankCommand, \
-    TimeDriveCommand, AutoShooterCommand
+    TimeDriveCommand, AutoShooterCommand, PursuitDriveCommand
 from dashboard import dashboard2
 from drivetrain import SmartDrivetrain
+from mathutils import Vector2
+from navigation import Waypoint
 from wpy.motor import PWMMotor
 from systems import FuelTank, Shooter, GearLifter, Climber
 
@@ -86,7 +89,8 @@ class MyRobot(wpilib.SampleRobot):
         dashboard2.run(basedir)
         wpilib.CameraServer.launch()
 
-        dashboard2.chooser("Autonomous", ["None", "Drive MotionMagic", "Align Shoot",
+        dashboard2.chooser("Autonomous", ["None", "Drive MotionMagic", "Align Shoot", "Pure Pursuit 1",
+                                          "Pure Pursuit 2", "Pure Pursuit 3",
                                           "Gear Center", "Gear Left", "Gear Right", "Hopper/Boiler Blue",
                                           "Hopper/Boiler Red", "Boiler/Mobility Blue", "Boiler/Mobility Red"],
                            default="None")
@@ -271,6 +275,16 @@ class MyRobot(wpilib.SampleRobot):
                 #cmds.append(AutoFuelTankCommand(self, 10))
                 cmds.append(DistanceDriveCommand(self, 100, 0.6))
                 self.cmd_queue.append(CommandSequence(self, cmds))
+            if mode == "Pure Pursuit 1":
+                cmds = []
+                cmds.append(PursuitDriveCommand(self, [Vector2(3, 0)], cruise_vel=0.5, acc=0.1,
+                                                lookahead=0.5))
+                self.cmd_queue.append(CommandSequence(self, cmds))
+            if mode == "Pure Pursuit 2":
+                cmds = []
+                cmds.append(PursuitDriveCommand(self, [Vector2(3, 0), Vector2(5, 2)], cruise_vel=0.5, acc=0.1,
+                                                lookahead=0.5))
+                self.cmd_queue.append(CommandSequence(self, cmds))
 
 
         # Init
@@ -310,6 +324,8 @@ class MyRobot(wpilib.SampleRobot):
             self.current_state = MyRobot.State.TELEOP
             self.periodic()
             robot_time.sleep(millis=self.delay_millis)
+
+            print(pose.get_current_pose())
 
         for cmd in self.current_commands:
             cmd.cancel()

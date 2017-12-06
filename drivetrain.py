@@ -6,6 +6,7 @@ import math
 from robotpy_ext.common_drivers.navx.ahrs import AHRS
 
 import mathutils
+import pose
 from command_based import Subsystem
 from dashboard import dashboard2
 
@@ -13,6 +14,7 @@ from dashboard import dashboard2
 class SmartDrivetrain(Subsystem, wpilib.MotorSafety):
     class Mode:
         PercentVbus = ctre.CANTalon.ControlMode.PercentVbus
+        Voltage = ctre.CANTalon.ControlMode.Voltage
         Speed = ctre.CANTalon.ControlMode.Speed
         MotionMagic = ctre.CANTalon.ControlMode.MotionMagic
         MotionProfile = ctre.CANTalon.ControlMode.MotionProfile
@@ -35,6 +37,12 @@ class SmartDrivetrain(Subsystem, wpilib.MotorSafety):
         self._left_motor = left_motor
         self._right_motor = right_motor
 
+        pose.init(left_encoder_callback=self._left_motor.getPosition,
+                  right_encoder_callback=self._right_motor.getPosition,
+                  gyro_callback=self.get_heading_rads,
+                  encoder_factor=(math.pi * self.wheel_diameter / 12),
+                  wheelbase=self.robot_width)
+
         self._max_output = 1
         self._mode = SmartDrivetrain.Mode.PercentVbus
         self.set_mode(self._mode)
@@ -51,6 +59,9 @@ class SmartDrivetrain(Subsystem, wpilib.MotorSafety):
             self._right_motor.setControlMode(self._mode)
             if self._mode == SmartDrivetrain.Mode.PercentVbus:
                 self._max_output = 1
+                self.setSafetyEnabled(True)
+            elif self._mode == SmartDrivetrain.Mode.Voltage:
+                self._max_output = 12
                 self.setSafetyEnabled(True)
             elif self._mode == SmartDrivetrain.Mode.Speed:
                 self._max_output = self.get_fps_rpm_ratio()
@@ -173,6 +184,9 @@ class SmartDrivetrain(Subsystem, wpilib.MotorSafety):
 
     def get_heading(self):
         return self.ahrs.getYaw()
+
+    def get_heading_rads(self):
+        return -self.ahrs.getYaw() * math.pi / 180
 
     def default(self):
         self._set_motor_outputs(0, 0)

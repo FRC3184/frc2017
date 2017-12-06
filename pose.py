@@ -19,15 +19,19 @@ class Pose(Vector2):
         self.heading = heading
 
     def __repr__(self):
-        return "Pose(x={}, y={}, heading={})".format(self.x, self.y, self.heading)
+        return "Pose(x={}, y={}, heading={})".format(self.x, self.y, (self.heading * 180 / math.pi))
 
     def __add__(self, other):
-        assert type(other) == type(self)
-        return Pose(self.x + other.x, self.y + other.y, self.heading + other.heading)
+        if type(other) == type(self):
+            return Pose(self.x + other.x, self.y + other.y, self.heading + other.heading)
+        elif type(other) == Vector2:
+            return Vector2(self.x - other.x, self.y - other.y)
 
     def __sub__(self, other):
-        assert type(other) == type(self)
-        return Pose(self.x - other.x, self.y - other.y, self.heading - other.heading)
+        if type(other) == Pose:
+            return Pose(self.x - other.x, self.y - other.y, self.heading - other.heading)
+        elif type(other) == Vector2:
+            return Vector2(self.x - other.x, self.y - other.y)
 
 
 def init(left_encoder_callback, right_encoder_callback, gyro_callback=None,
@@ -40,7 +44,7 @@ def init(left_encoder_callback, right_encoder_callback, gyro_callback=None,
         _estimator_thread.start()
 
 
-def get_current_pose():
+def get_current_pose() -> Pose:
     if _estimator is not None:
         return _estimator.current_pose
     raise ValueError("Estimator has not been initialized")

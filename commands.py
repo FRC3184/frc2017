@@ -2,6 +2,8 @@ import wpilib
 from networktables import NetworkTables
 
 import mathutils
+import pose
+import pursuit
 from command_based import Command
 import ctre
 import math
@@ -256,6 +258,11 @@ class OpDriveCommand(Command):
         spenner_button = 1
         tank_button = 3
         qt_button = 2
+
+        if js_left.getRawButton(8):
+            self.my_robot.drive.ahrs.reset()
+            pose._estimator.current_pose = pose.Pose(0, 0, 0)
+
         if js_left.getRawButton(spenner_button) or js_right.getRawButton(spenner_button):
             spenner = 0.7
 
@@ -462,3 +469,60 @@ class TurnToBoilerCommand(Command):
             self.result = True
         else:
             self.my_robot.drive.arcade_drive(0, 0.5)
+
+
+class PursuitDriveCommand(Command):
+    def __init__(self, my_robot, path, acc, cruise_vel, lookahead, margin=1/12):
+        super().__init__(my_robot)
+        self.path = path[:]
+        self.acc = acc
+        self.cruise_vel = cruise_vel
+        self.lookahead = lookahead
+        self.margin = margin
+
+        self.ramp_dist = self.cruise_vel ** 2 / (2 * self.acc)
+
+    def can_run(self):
+        return not self.my_robot.drive.is_occupied
+
+    def init(self):
+        self.my_robot.drive.occupy()
+        self.my_robot.drive.set_mode(SmartDrivetrain.Mode.PercentVbus)
+        self.path = [pose.get_current_pose()] + self.path
+        print(self.path)
+
+    def is_finished(self):
+        return False
+
+    def finish(self):
+        print("Done with pursuit")
+        self.my_robot.drive.set_mode(SmartDrivetrain.Mode.PercentVbus)
+        self.my_robot.drive.release()
+
+    def run_periodic(self):
+        cur_pose = pose.get_current_pose()
+        dist_to_begin = cur_pose.distance(self.path[0])
+        dist_to_end = cur_pose.distance(self.path[-1])
+        min_drive_speed = 0.3
+
+        # TODO Assumption: Distance to end monotonically decreases if less than ramp_dist from goal
+        if dist_to_end < dist_to_begin and dist_to_end < self.ramp_dist:
+            drive_speed = self.cruise_vel * dist_to_end / self.ramp_dist
+        elif dist_to_begin < self.ramp_dist:
+            drive_speed = self.cruise_vel * dist_to_begin / self.ramp_dist
+        else:
+            drive_speed = self.cruise_vel
+
+        drive_speed = min_drive_speed
+
+
+        if dist_to_end < self.margin:
+            self.is_finished = lambda: True
+        drive = self.my_robot.drive
+        curv = pursuit.curvature(pose=cur_pose, path=self.path, lookahead=self.lookahead)
+        print("C: {}".format(curv))
+        print(cur_pose)
+        if abs(curv) < 1e-2:
+            drive._set_motor_outputs(drive_speed, drive_speed)
+        else:
+            drive._radius_turn(drive_speed, 1 / -curv)
