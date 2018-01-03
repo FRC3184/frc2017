@@ -472,7 +472,7 @@ class TurnToBoilerCommand(Command):
 
 
 class PursuitDriveCommand(Command):
-    def __init__(self, my_robot, path, acc, cruise_vel, lookahead, margin=1/12):
+    def __init__(self, my_robot, path, acc, cruise_vel, lookahead, margin=2/12):
         super().__init__(my_robot)
         self.path = path[:]
         self.acc = acc
@@ -480,15 +480,19 @@ class PursuitDriveCommand(Command):
         self.lookahead = lookahead
         self.margin = margin
 
+        self.smallest_dist = 100
+
         self.ramp_dist = self.cruise_vel ** 2 / (2 * self.acc)
+        self.controller = None
 
     def can_run(self):
         return not self.my_robot.drive.is_occupied
 
     def init(self):
         self.my_robot.drive.occupy()
-        self.my_robot.drive.set_mode(SmartDrivetrain.Mode.PercentVbus)
-        self.path = [pose.get_current_pose()] + self.path
+        self.my_robot.drive.set_mode(SmartDrivetrain.Mode.Voltage)
+        self.controller = pursuit.PurePursuitController(pose.get_current_pose(),
+                                                        self.path, self.lookahead)
         print(self.path)
 
     def is_finished(self):
@@ -500,29 +504,36 @@ class PursuitDriveCommand(Command):
         self.my_robot.drive.release()
 
     def run_periodic(self):
+        Vbus = 12
         cur_pose = pose.get_current_pose()
         dist_to_begin = cur_pose.distance(self.path[0])
         dist_to_end = cur_pose.distance(self.path[-1])
-        min_drive_speed = 0.3
+        min_drive_speed = 0.2
+        gain_radius = 5 * self.ramp_dist
 
         # TODO Assumption: Distance to end monotonically decreases if less than ramp_dist from goal
-        if dist_to_end < dist_to_begin and dist_to_end < self.ramp_dist:
-            drive_speed = self.cruise_vel * dist_to_end / self.ramp_dist
+        if dist_to_end < gain_radius:
+            drive_speed = min_drive_speed
+        elif (dist_to_end - gain_radius) < dist_to_begin \
+                and (dist_to_end - gain_radius) < self.ramp_dist:
+            drive_speed = self.cruise_vel * (dist_to_end - gain_radius) / self.ramp_dist
         elif dist_to_begin < self.ramp_dist:
             drive_speed = self.cruise_vel * dist_to_begin / self.ramp_dist
         else:
             drive_speed = self.cruise_vel
 
-        drive_speed = min_drive_speed
+        drive = self.my_robot.drive
 
-
+        drive_speed = max(min_drive_speed, drive_speed)
+        self.smallest_dist = min(self.smallest_dist, dist_to_end)
         if dist_to_end < self.margin:
             self.is_finished = lambda: True
-        drive = self.my_robot.drive
-        curv = pursuit.curvature(pose=cur_pose, path=self.path, lookahead=self.lookahead)
-        print("C: {}".format(curv))
+            drive._set_motor_outputs(0, 0)
+
+        curv = self.controller.curvature(pose=cur_pose, speed=abs(drive_speed))
+        print("C: {} S: {} D: {}".format(curv, drive_speed, self.smallest_dist))
         print(cur_pose)
-        if abs(curv) < 1e-2:
-            drive._set_motor_outputs(drive_speed, drive_speed)
+        if abs(curv) == 0:
+            drive._set_motor_outputs(drive_speed * Vbus, drive_speed * Vbus)
         else:
-            drive._radius_turn(drive_speed, 1 / -curv)
+            drive._radius_turn(drive_speed * Vbus, 1 / curv)

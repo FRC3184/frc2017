@@ -138,12 +138,14 @@ class MyRobot(wpilib.SampleRobot):
         self.talon_right.setD(d_r)
         self.talon_right.setF(f_r)
 
-        volt_ramp_time = 1/3
+        volt_ramp_time = 1/5
         volt_ramp = 12 / volt_ramp_time
-        # self.talon_left.setVoltageRampRate(volt_ramp)
-        # self.talon_right.setVoltageRampRate(volt_ramp)
+        self.talon_left.setVoltageRampRate(volt_ramp)
+        self.talon_right.setVoltageRampRate(volt_ramp)
 
         dashboard2.number_input("Turn Kp", 0.005)
+        dashboard2.number_input("Lookahead", 1)
+        dashboard2.number_input("Cruise speed", 0.3)
 
         dashboard2.graph("Blender Current", self.victor_blender.get_current)
         dashboard2.graph("Climber Current", self.talon_climber.get_current)
@@ -275,15 +277,25 @@ class MyRobot(wpilib.SampleRobot):
                 #cmds.append(AutoFuelTankCommand(self, 10))
                 cmds.append(DistanceDriveCommand(self, 100, 0.6))
                 self.cmd_queue.append(CommandSequence(self, cmds))
+
+            lookahead = float(dashboard2.number_inputs["Lookahead"])
+            cruise = float(dashboard2.number_inputs["Cruise speed"])
             if mode == "Pure Pursuit 1":
                 cmds = []
-                cmds.append(PursuitDriveCommand(self, [Vector2(3, 0)], cruise_vel=0.5, acc=0.1,
-                                                lookahead=0.5))
+                cmds.append(PursuitDriveCommand(self, [Vector2(0, 0), Vector2(7, 0)], cruise_vel=0.4, acc=0.1,
+                                                lookahead=lookahead))
                 self.cmd_queue.append(CommandSequence(self, cmds))
             if mode == "Pure Pursuit 2":
                 cmds = []
-                cmds.append(PursuitDriveCommand(self, [Vector2(3, 0), Vector2(5, 2)], cruise_vel=0.5, acc=0.1,
-                                                lookahead=0.5))
+                cmds.append(PursuitDriveCommand(self, [Vector2(0, 0), Vector2(6, 0), Vector2(9, -4)],
+                                                cruise_vel=0.3, acc=0.15,
+                                                lookahead=lookahead))
+                self.cmd_queue.append(CommandSequence(self, cmds))
+            if mode == "Pure Pursuit 3":
+                cmds = []
+                cmds.append(PursuitDriveCommand(self, [Vector2(0, 0), Vector2(6, -4), Vector2(9, -4)],
+                                                cruise_vel=0.3, acc=0.15,
+                                                lookahead=lookahead))
                 self.cmd_queue.append(CommandSequence(self, cmds))
 
 
@@ -324,8 +336,6 @@ class MyRobot(wpilib.SampleRobot):
             self.current_state = MyRobot.State.TELEOP
             self.periodic()
             robot_time.sleep(millis=self.delay_millis)
-
-            print(pose.get_current_pose())
 
         for cmd in self.current_commands:
             cmd.cancel()

@@ -42,6 +42,10 @@ class SmartDrivetrain(Subsystem, wpilib.MotorSafety):
                   gyro_callback=self.get_heading_rads,
                   encoder_factor=(math.pi * self.wheel_diameter / 12),
                   wheelbase=self.robot_width)
+        dashboard2.graph("Pose X", lambda: pose.get_current_pose().x)
+        dashboard2.graph("Pose Y", lambda: pose.get_current_pose().y)
+        dashboard2.graph("Distance to target",
+                         lambda: pose.get_current_pose().distance(mathutils.Vector2(6, -4)))
 
         self._max_output = 1
         self._mode = SmartDrivetrain.Mode.PercentVbus
@@ -64,7 +68,7 @@ class SmartDrivetrain(Subsystem, wpilib.MotorSafety):
                 self._max_output = 12
                 self.setSafetyEnabled(True)
             elif self._mode == SmartDrivetrain.Mode.Speed:
-                self._max_output = self.get_fps_rpm_ratio()
+                self._max_output = self.rpm_to_native_speed(self.get_fps_rpm_ratio())
                 self.setSafetyEnabled(True)
             else:
                 self.setSafetyEnabled(False)
@@ -205,11 +209,14 @@ class SmartDrivetrain(Subsystem, wpilib.MotorSafety):
             return (math.pi * self.wheel_diameter) * revs / 12
         except ZeroDivisionError:
             return 0
+
+    def rpm_to_native_speed(self, rpm: float):
+        return rpm * 4096 / 600
     
     def _set_motor_outputs(self, left: float, right: float):
-        if self._max_output != 0:
-            left *= self._max_output
-            right *= self._max_output
+        if self._mode == SmartDrivetrain.Mode.Speed:
+            left = self.fps_to_rpm(left * self.max_speed)
+            right = self.fps_to_rpm(right * self.max_speed)
         self._left_motor.set(left)
         self._right_motor.set(right)
         self.feed()
