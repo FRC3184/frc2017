@@ -2,12 +2,12 @@ import json
 from queue import Queue
 from threading import Thread
 
+import pose
 from dashboard import dashboard_server
 from dashboard.dashboard_server import FileResponse, GeneratorResponse, ServerSentEvent
 
 subscriptions = []
 graphs = {}
-plots = {}
 choosers = {}
 indicators = {}
 number_inputs = {}
@@ -65,8 +65,6 @@ def gen():
     q = Queue()
     for g, _ in graphs.items():
         q.put(ServerSentEvent(json.dumps({"action": "make_chart", "name": g}), "action"))
-    for g, _ in plots.items():
-        q.put(ServerSentEvent(json.dumps({"action": "make_plot", "name": g}), "action"))
     for name, opts in choosers.items():
         q.put(ServerSentEvent(json.dumps({"action": "make_chooser", "name": name, "options": opts}), "action"))
     for name, _ in indicators.items():
@@ -84,6 +82,7 @@ def gen():
     except GeneratorExit:
         subscriptions.remove(q)
         print("Dropped a stream")
+
 
 dashboard_server.serve_path("/events", GeneratorResponse(gen))
 
@@ -104,15 +103,12 @@ def update_input(handler, path, data):
     print("Received number for {}: {}".format(data['name'], opt))
     return 200
 
+
 dashboard_server.method_path("/update_number", update_input)
 
 
 def graph(name, callback):
     graphs[name] = callback
-
-
-def plot(name, callback):
-    plots[name] = callback
 
 
 def chooser(name, options, default=None):
@@ -127,6 +123,7 @@ def indicator(name, callback):
 def get_chooser(name):
     return chooser_status[name]
 
+
 def number_input(name, default=0):
     number_inputs[name] = default
 
@@ -134,11 +131,14 @@ def number_input(name, default=0):
 def update(time):
     for g, v in graphs.items():
         send_message({"name": g, "time": time, "value": v()}, event="data")
-    for g, v in plots.items():
-        x, y = v()
-        send_message({"name": g, "time": x, "value": y}, event="data")
     for name, status in indicators.items():
         send_message({"name": name, "status": status()}, event='indicator')
+    # Try to send the pose, but it will throw an error if it hasn't been initialized yet
+    try:
+        poze = pose.get_current_pose()
+        send_message({"x": poze.x, "y": poze.y, "heading": poze.heading}, event="pose")
+    except ValueError:
+        pass
 
 
 def send_message(data, event=None):

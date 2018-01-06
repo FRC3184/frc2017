@@ -79,6 +79,8 @@ class PoseEstimator:
         self.current_pose.x += dist * math.cos(self.current_pose.heading)
         self.current_pose.y += dist * math.sin(self.current_pose.heading)
 
+        print(self.current_pose)
+
 
 def _update_estimator(pose_estimator: PoseEstimator, sleep_sec=(20/1000)):
     while True:

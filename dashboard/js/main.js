@@ -51,19 +51,6 @@ var make_chart = function (data) {
 
     name_map[data.name] = my_chart;
 };
-var make_plot = function (data) {
-    console.log(data.name);
-    var chart_element = $("<canvas width=\"400px\" height=\"400px\" class=\"plot\"></canvas>");
-    chart_element.appendTo("#dashboard");
-    chart_wrapper = $("<div class=\"element-wrap ui-widget-content\" data-name=\"" + data.name + "\"></div>");
-    chart_element.wrap(chart_wrapper);
-
-    $("#elements-toggle").append($("<div class='toggle-block'><label for='__toggle-" + data.name + "'>" + data.name + "</label><input type='checkbox' class='display-toggle' id='__toggle-" + data.name + "' data-target='" + data.name + "' checked /></div><br /> "));
-
-    var my_chart = new Chart(chart_element, data.name);
-
-    name_map[data.name] = my_chart;
-};
 var make_chooser = function (data) {
     var chart_element = $("<select class=\"chooser\" data-name=\"" + data.name + "\"></select>");
     chart_element.append("<option>&lt;Select&gt;</option>");
@@ -91,7 +78,7 @@ var make_extension = function (data) {
     var element = $(data.html);
     element.appendTo("#dashboard");
     element.wrap($("<div class=\"element-wrap ui-widget-content\" data-name=\"" + data.name + "\"></div>"));
-}
+};
 
 var source = new EventSource("/events");
 source.addEventListener('message', function (event) {
@@ -134,9 +121,6 @@ source.addEventListener("action", function (event) {
             break;
         case "make_chart":
             make_chart(data);
-            break;
-        case "make_plot":
-            make_plot(data);
             break;
         case "make_chooser":
             make_chooser(data);
