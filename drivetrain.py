@@ -8,7 +8,6 @@ from robotpy_ext.common_drivers.navx.ahrs import AHRS
 
 import mathutils
 import pose
-import robot
 import robot_time
 from command_based import Subsystem
 from dashboard import dashboard2
@@ -17,6 +16,7 @@ from dashboard import dashboard2
 class SmartDrivetrain(Subsystem, wpilib.MotorSafety):
     class Mode:
         PercentVbus = ctre.CANTalon.ControlMode.PercentVbus
+        Voltage = ctre.CANTalon.ControlMode.Voltage
         Speed = ctre.CANTalon.ControlMode.Speed
         MotionMagic = ctre.CANTalon.ControlMode.MotionMagic
         MotionProfile = ctre.CANTalon.ControlMode.MotionProfile
@@ -38,6 +38,16 @@ class SmartDrivetrain(Subsystem, wpilib.MotorSafety):
         self.ahrs = AHRS.create_i2c()
         self._left_motor = left_motor
         self._right_motor = right_motor
+
+        pose.init(left_encoder_callback=self._left_motor.getPosition,
+                  right_encoder_callback=self._right_motor.getPosition,
+                  gyro_callback=self.get_heading_rads,
+                  encoder_factor=(math.pi * self.wheel_diameter / 12),
+                  wheelbase=self.robot_width)
+        dashboard2.graph("Pose X", lambda: pose.get_current_pose().x)
+        dashboard2.graph("Pose Y", lambda: pose.get_current_pose().y)
+        dashboard2.graph("Distance to target",
+                         lambda: pose.get_current_pose().distance(mathutils.Vector2(6, -4)))
 
         self._max_output = 1
         self._mode = SmartDrivetrain.Mode.PercentVbus
@@ -82,8 +92,11 @@ class SmartDrivetrain(Subsystem, wpilib.MotorSafety):
             if self._mode == SmartDrivetrain.Mode.PercentVbus:
                 self._max_output = 1
                 self.setSafetyEnabled(True)
+            elif self._mode == SmartDrivetrain.Mode.Voltage:
+                self._max_output = 12
+                self.setSafetyEnabled(True)
             elif self._mode == SmartDrivetrain.Mode.Speed:
-                self._max_output = self.get_fps_rpm_ratio()
+                self._max_output = self.rpm_to_native_speed(self.get_fps_rpm_ratio())
                 self.setSafetyEnabled(True)
             else:
                 self.setSafetyEnabled(False)
@@ -204,6 +217,9 @@ class SmartDrivetrain(Subsystem, wpilib.MotorSafety):
     def get_heading(self):
         return self.ahrs.getYaw()
 
+    def get_heading_rads(self):
+        return -self.ahrs.getYaw() * math.pi / 180
+      
     def get_left_distance(self):
         if wpilib.hal.isSimulation():
             return self._model_left_dist
@@ -233,11 +249,14 @@ class SmartDrivetrain(Subsystem, wpilib.MotorSafety):
             return (math.pi * self.wheel_diameter) * revs / 12
         except ZeroDivisionError:
             return 0
+
+    def rpm_to_native_speed(self, rpm: float):
+        return rpm * 4096 / 600
     
     def _set_motor_outputs(self, left: float, right: float):
-        if self._max_output != 0:
-            left *= self._max_output
-            right *= self._max_output
+        if self._mode == SmartDrivetrain.Mode.Speed:
+            left = self.fps_to_rpm(left * self.max_speed)
+            right = self.fps_to_rpm(right * self.max_speed)
         self._left_motor.set(left)
         self._right_motor.set(right)
         self.feed()

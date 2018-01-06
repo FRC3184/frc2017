@@ -19,15 +19,19 @@ class Pose(Vector2):
         self.heading = heading
 
     def __repr__(self):
-        return "Pose(x={}, y={}, heading={})".format(self.x, self.y, self.heading)
+        return "Pose(x={}, y={}, heading={})".format(self.x, self.y, (self.heading * 180 / math.pi))
 
     def __add__(self, other):
-        assert type(other) == type(self)
-        return Pose(self.x + other.x, self.y + other.y, self.heading + other.heading)
+        if type(other) == type(self):
+            return Pose(self.x + other.x, self.y + other.y, self.heading + other.heading)
+        elif type(other) == Vector2:
+            return Vector2(self.x - other.x, self.y - other.y)
 
     def __sub__(self, other):
-        assert type(other) == type(self)
-        return Pose(self.x - other.x, self.y - other.y, self.heading - other.heading)
+        if type(other) == Pose:
+            return Pose(self.x - other.x, self.y - other.y, self.heading - other.heading)
+        elif type(other) == Vector2:
+            return Vector2(self.x - other.x, self.y - other.y)
 
 
 def init(left_encoder_callback, right_encoder_callback, gyro_callback=None,
@@ -82,7 +86,12 @@ class PoseEstimator:
         print(self.current_pose)
 
 
-def _update_estimator(pose_estimator: PoseEstimator, sleep_sec=(20/1000)):
+def _update_estimator(pose_estimator: PoseEstimator, sleep_sec=(10/1000)):
+    ct = 0
     while True:
         pose_estimator.update(dt=sleep_sec)
+        ct += sleep_sec
+        if ct > 1:
+            print(get_current_pose())
+            ct = 0
         robot_time.sleep(seconds=sleep_sec)

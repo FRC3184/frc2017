@@ -7,13 +7,16 @@ import math
 import wpilib
 from networktables import NetworkTables
 
+import pose
 import robot_time
 from command_based import CommandSequence
 from commands import OpDriveCommand, MotionProfileDriveCommand, OpFuelTankCommand, OpShooterCommand, OpClimberCommand, \
     OpGearCommand, TurnToAngleCommand, AutoGearCommand, DistanceDriveCommand, TurnToBoilerCommand, AutoFuelTankCommand, \
-    TimeDriveCommand, AutoShooterCommand
+    TimeDriveCommand, AutoShooterCommand, PursuitDriveCommand
 from dashboard import dashboard2
 from drivetrain import SmartDrivetrain
+from mathutils import Vector2
+from navigation import Waypoint
 from wpy.motor import PWMMotor
 from systems import FuelTank, Shooter, GearLifter, Climber
 
@@ -86,7 +89,8 @@ class MyRobot(wpilib.SampleRobot):
         dashboard2.run(basedir)
         wpilib.CameraServer.launch()
 
-        dashboard2.chooser("Autonomous", ["None", "Drive MotionMagic", "Align Shoot",
+        dashboard2.chooser("Autonomous", ["None", "Drive MotionMagic", "Align Shoot", "Pure Pursuit 1",
+                                          "Pure Pursuit 2", "Pure Pursuit 3",
                                           "Gear Center", "Gear Left", "Gear Right", "Hopper/Boiler Blue",
                                           "Hopper/Boiler Red", "Boiler/Mobility Blue", "Boiler/Mobility Red"],
                            default="None")
@@ -134,12 +138,14 @@ class MyRobot(wpilib.SampleRobot):
         self.talon_right.setD(d_r)
         self.talon_right.setF(f_r)
 
-        volt_ramp_time = 1/3
+        volt_ramp_time = 1/5
         volt_ramp = 12 / volt_ramp_time
-        # self.talon_left.setVoltageRampRate(volt_ramp)
-        # self.talon_right.setVoltageRampRate(volt_ramp)
+        self.talon_left.setVoltageRampRate(volt_ramp)
+        self.talon_right.setVoltageRampRate(volt_ramp)
 
         dashboard2.number_input("Turn Kp", 0.005)
+        dashboard2.number_input("Lookahead", 1)
+        dashboard2.number_input("Cruise speed", 0.3)
 
         dashboard2.graph("Blender Current", self.victor_blender.get_current)
         dashboard2.graph("Climber Current", self.talon_climber.get_current)
@@ -270,6 +276,26 @@ class MyRobot(wpilib.SampleRobot):
                 cmds.append(AutoShooterCommand(self, 10, 3650))
                 #cmds.append(AutoFuelTankCommand(self, 10))
                 cmds.append(DistanceDriveCommand(self, 100, 0.6))
+                self.cmd_queue.append(CommandSequence(self, cmds))
+
+            lookahead = float(dashboard2.number_inputs["Lookahead"])
+            cruise = float(dashboard2.number_inputs["Cruise speed"])
+            if mode == "Pure Pursuit 1":
+                cmds = []
+                cmds.append(PursuitDriveCommand(self, [Vector2(0, 0), Vector2(7, 0)], cruise_vel=0.4, acc=0.1,
+                                                lookahead=lookahead))
+                self.cmd_queue.append(CommandSequence(self, cmds))
+            if mode == "Pure Pursuit 2":
+                cmds = []
+                cmds.append(PursuitDriveCommand(self, [Vector2(0, 0), Vector2(6, 0), Vector2(9, -4)],
+                                                cruise_vel=0.3, acc=0.15,
+                                                lookahead=lookahead))
+                self.cmd_queue.append(CommandSequence(self, cmds))
+            if mode == "Pure Pursuit 3":
+                cmds = []
+                cmds.append(PursuitDriveCommand(self, [Vector2(0, 0), Vector2(6, -4), Vector2(9, -4)],
+                                                cruise_vel=0.3, acc=0.15,
+                                                lookahead=lookahead))
                 self.cmd_queue.append(CommandSequence(self, cmds))
 
 
