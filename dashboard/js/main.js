@@ -78,9 +78,20 @@ var make_extension = function (data) {
     var element = $(data.html);
     element.appendTo("#dashboard");
     element.wrap($("<div class=\"element-wrap ui-widget-content\" data-name=\"" + data.name + "\"></div>"));
-}
+};
 
-var source = new EventSource("/events");
+var source;
+function initEventSource() {
+    source = new EventSource("/events");
+    source.onerror = function (e) {
+        if (es.readyState === 2) {
+            setTimeout(initEventSource, 1000);
+        }
+    }
+}
+initEventSource();
+
+
 source.addEventListener('message', function (event) {
     var data = JSON.parse(event.data);
     alert("The server says " + data.message);

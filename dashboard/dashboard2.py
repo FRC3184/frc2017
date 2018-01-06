@@ -2,6 +2,7 @@ import json
 from queue import Queue
 from threading import Thread
 
+import pose
 from dashboard import dashboard_server
 from dashboard.dashboard_server import FileResponse, GeneratorResponse, ServerSentEvent
 
@@ -82,6 +83,7 @@ def gen():
         subscriptions.remove(q)
         print("Dropped a stream")
 
+
 dashboard_server.serve_path("/events", GeneratorResponse(gen))
 
 
@@ -100,6 +102,7 @@ def update_input(handler, path, data):
     number_inputs[data['name']] = opt
     print("Received number for {}: {}".format(data['name'], opt))
     return 200
+
 
 dashboard_server.method_path("/update_number", update_input)
 
@@ -120,6 +123,7 @@ def indicator(name, callback):
 def get_chooser(name):
     return chooser_status[name]
 
+
 def number_input(name, default=0):
     number_inputs[name] = default
 
@@ -129,6 +133,12 @@ def update(time):
         send_message({"name": g, "time": time, "value": v()}, event="data")
     for name, status in indicators.items():
         send_message({"name": name, "status": status()}, event='indicator')
+    # Try to send the pose, but it will throw an error if it hasn't been initialized yet
+    try:
+        poze = pose.get_current_pose()
+        send_message({"x": poze.x, "y": poze.y, "heading": poze.heading}, event="pose")
+    except ValueError:
+        pass
 
 
 def send_message(data, event=None):
