@@ -39,10 +39,13 @@ class SmartDrivetrain(Subsystem, wpilib.MotorSafety):
         self._left_motor = left_motor
         self._right_motor = right_motor
 
-        pose.init(left_encoder_callback=self._left_motor.getPosition,
-                  right_encoder_callback=self._right_motor.getPosition,
-                  gyro_callback=self.get_heading_rads,
-                  encoder_factor=(math.pi * self.wheel_diameter / 12),
+        self._model_left_dist = 0
+        self._model_right_dist = 0
+        self._model_last_time = robot_time.millis()
+
+        pose.init(left_encoder_callback=self.get_left_distance,
+                  right_encoder_callback=self.get_right_distance,
+                  gyro_callback=(None if wpilib.hal.isSimulation() else self.get_heading_rads),
                   wheelbase=self.robot_width)
         dashboard2.graph("Pose X", lambda: pose.get_current_pose().x)
         dashboard2.graph("Pose Y", lambda: pose.get_current_pose().y)
@@ -52,10 +55,6 @@ class SmartDrivetrain(Subsystem, wpilib.MotorSafety):
         self._max_output = 1
         self._mode = SmartDrivetrain.Mode.PercentVbus
         self.set_mode(self._mode)
-
-        self._model_left_dist = 0
-        self._model_right_dist = 0
-        self._model_last_time = robot_time.millis()
 
         if wpilib.hal.isSimulation():
             model_thread = threading.Thread(target=self._update_model)
@@ -69,19 +68,23 @@ class SmartDrivetrain(Subsystem, wpilib.MotorSafety):
                   wheelbase=self.robot_width,
                   encoder_factor=self.get_fps_rpm_ratio())
 
-        dashboard2.graph("Heading", lambda: pose.get_current_pose().heading)
+        dashboard2.graph("Heading", lambda: pose.get_current_pose().heading * 180 / math.pi)
 
     def _update_model(self):
         while True:
+            print("Model!")
             now = robot_time.millis()
             dt = (now - self._model_last_time) / 1000
             self._model_last_time = now
             if self._mode == SmartDrivetrain.Mode.PercentVbus:
-                # Subtract because something is backwards
-                self._model_left_dist -= self._left_motor.get() * self.max_speed * dt
-                self._model_right_dist -= self._right_motor.get() * self.max_speed * dt
+                factor = 1
+            elif self._mode == SmartDrivetrain.Mode.Voltage:
+                factor = 1/12
             else:
                 print("Can't update model outside of PercentVBus")
+                continue
+            self._model_left_dist += self._left_motor.get() * self.max_speed * dt * factor
+            self._model_right_dist += self._right_motor.get() * self.max_speed * dt * factor
             robot_time.sleep(millis=20)
 
     def set_mode(self, mode):
@@ -219,18 +222,18 @@ class SmartDrivetrain(Subsystem, wpilib.MotorSafety):
 
     def get_heading_rads(self):
         return -self.ahrs.getYaw() * math.pi / 180
-      
+
     def get_left_distance(self):
         if wpilib.hal.isSimulation():
             return self._model_left_dist
         else:
-            return self._left_motor.getPosition()
+            return self._left_motor.getPosition() * (math.pi * self.wheel_diameter / 12)
 
     def get_right_distance(self):
         if wpilib.hal.isSimulation():
             return self._model_right_dist
         else:
-            return self._right_motor.getPosition()
+            return self._right_motor.getPosition() * (math.pi * self.wheel_diameter / 12)
 
     def default(self):
         self._set_motor_outputs(0, 0)
