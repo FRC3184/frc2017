@@ -40,7 +40,7 @@ def init(left_encoder_callback, right_encoder_callback, gyro_callback=None,
         _estimator_thread.start()
 
 
-def get_current_pose():
+def get_current_pose() -> Pose:
     if _estimator is not None:
         return _estimator.current_pose
     raise ValueError("Estimator has not been initialized")
@@ -78,6 +78,8 @@ class PoseEstimator:
         dist = (dist_left + dist_right) / 2
         self.current_pose.x += dist * math.cos(self.current_pose.heading)
         self.current_pose.y += dist * math.sin(self.current_pose.heading)
+
+        print(self.current_pose)
 
 
 def _update_estimator(pose_estimator: PoseEstimator, sleep_sec=(20/1000)):

@@ -1,3 +1,4 @@
+import threading
 import warnings
 
 import ctre
@@ -6,6 +7,9 @@ import math
 from robotpy_ext.common_drivers.navx.ahrs import AHRS
 
 import mathutils
+import pose
+import robot
+import robot_time
 from command_based import Subsystem
 from dashboard import dashboard2
 
@@ -38,11 +42,37 @@ class SmartDrivetrain(Subsystem, wpilib.MotorSafety):
         self._max_output = 1
         self._mode = SmartDrivetrain.Mode.PercentVbus
         self.set_mode(self._mode)
+
+        self._model_left_dist = 0
+        self._model_right_dist = 0
+        self._model_last_time = robot_time.millis()
+
+        if wpilib.hal.isSimulation():
+            model_thread = threading.Thread(target=self._update_model)
+            model_thread.start()
         
         # Motor safety
         self.setSafetyEnabled(True)
 
-        dashboard2.graph("Heading", lambda: self.get_heading())
+        pose.init(left_encoder_callback=self.get_left_distance, right_encoder_callback=self.get_right_distance,
+                  gyro_callback=(self.get_heading if not wpilib.hal.isSimulation() else None),
+                  wheelbase=self.robot_width,
+                  encoder_factor=self.get_fps_rpm_ratio())
+
+        dashboard2.graph("Heading", lambda: pose.get_current_pose().heading)
+
+    def _update_model(self):
+        while True:
+            now = robot_time.millis()
+            dt = (now - self._model_last_time) / 1000
+            self._model_last_time = now
+            if self._mode == SmartDrivetrain.Mode.PercentVbus:
+                # Subtract because something is backwards
+                self._model_left_dist -= self._left_motor.get() * self.max_speed * dt
+                self._model_right_dist -= self._right_motor.get() * self.max_speed * dt
+            else:
+                print("Can't update model outside of PercentVBus")
+            robot_time.sleep(millis=20)
 
     def set_mode(self, mode):
         if self._mode != mode:
@@ -173,6 +203,18 @@ class SmartDrivetrain(Subsystem, wpilib.MotorSafety):
 
     def get_heading(self):
         return self.ahrs.getYaw()
+
+    def get_left_distance(self):
+        if wpilib.hal.isSimulation():
+            return self._model_left_dist
+        else:
+            return self._left_motor.getPosition()
+
+    def get_right_distance(self):
+        if wpilib.hal.isSimulation():
+            return self._model_right_dist
+        else:
+            return self._right_motor.getPosition()
 
     def default(self):
         self._set_motor_outputs(0, 0)
