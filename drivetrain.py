@@ -8,6 +8,7 @@ from robotpy_ext.common_drivers.navx.ahrs import AHRS
 
 import mathutils
 import pose
+import robot
 import robot_time
 from command_based import Subsystem
 from dashboard import dashboard2
